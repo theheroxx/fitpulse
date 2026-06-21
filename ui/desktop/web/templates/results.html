@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/results.css">
+</head>
+<body class="app-shell results-page no-js">
+    <header class="topbar">
+        <div class="brand"><span>📊</span><strong>Fitness Results</strong></div>
+        <nav class="nav-links">
+            <a href="chat.html">Chat</a>
+            <a href="stats.html">Stats</a>
+            <a href="settings.html">Settings</a>
+        </nav>
+    </header>
+
+    <section class="page-header">
+        <h1 class="page-title">Detailed analysis, clearly presented.</h1>
+        <p class="page-description">Track your environmental risk, see recommendation highlights, and understand how the system evaluates your current fitness context.</p>
+    </section>
+
+    <main class="content-grid">
+        <div class="results-grid">
+            <section class="results-summary">
+                <div class="status-banner">
+                    <div>
+                        <strong>Latest result</strong>
+                        <p>Environmental risk score is updated after each analysis.</p>
+                    </div>
+                    <span class="badge">AI recommended</span>
+                </div>
+
+                <div class="metric-row">
+                    <div class="metric-card">
+                        <span>Environmental Danger</span>
+                        <strong id="ed-value">72.5</strong>
+                        <span>Interpretation on a 0–100 scale.</span>
+                    </div>
+                    <div class="metric-card">
+                        <span>Safety Status</span>
+                        <strong id="safety-label">HIGH RISK ⚠️⚠️</strong>
+                        <span>Avoid very intense sessions right now.</span>
+                    </div>
+                    <div class="metric-card">
+                        <span>Confidence</span>
+                        <strong id="confidence-value">88%</strong>
+                        <span>Model certainty for the current prediction.</span>
+                    </div>
+                </div>
+
+                <div class="risk-card">
+                    <h3>Risk breakdown</h3>
+                    <div class="risk-list">
+                        <div class="risk-stat">
+                            <div class="risk-labels"><span>Pollution exposure</span><strong>68%</strong></div>
+                            <div class="risk-bar risk-bar--high"><span data-value="68" data-key="pollution"></span></div>
+                        </div>
+                        <div class="risk-stat">
+                            <div class="risk-labels"><span>Heat & humidity</span><strong>55%</strong></div>
+                            <div class="risk-bar risk-bar--medium"><span data-value="55" data-key="weather"></span></div>
+                        </div>
+                        <div class="risk-stat">
+                            <div class="risk-labels"><span>Overall score</span><strong>72%</strong></div>
+                            <div class="risk-bar risk-bar--high"><span data-value="72" data-key="ed"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recommendation-card">
+                    <h3>Recommendations</h3>
+                    <ul class="recommendation-list">
+                        <li>Choose a lower-intensity workout and stay hydrated if you exercise outdoors.</li>
+                        <li>Prefer indoor or shaded environments until pollution and heat fall below a safer range.</li>
+                        <li>Use recovery time to focus on mobility, breathing, and gentle stretching.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <aside class="ai-card">
+                <h3>AI coach insight</h3>
+                <p>The system combines environmental indicators, fitness profile, and health conditions to create a practical safety recommendation. Evaluate current conditions before moving forward with any intense physical activity.</p>
+                <div class="notification-card">
+                    <strong>Note:</strong>
+                    <p>This interface is for guidance only, and should not replace medical or fitness professional advice.</p>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer-bar">To improve readability, the web section now features a cleaner card layout and stronger risk visualization.</footer>
+
+    <script src="../assests/js/bridge.js"></script>
+    <script src="../assests/js/results.js"></script>
+</body>
+</html>

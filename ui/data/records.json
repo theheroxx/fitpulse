@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "title": "Legs day",
+    "description": "30 minutes",
+    "type": "workout",
+    "due_date": "Apr 11, 2026",
+    "is_done": true,
+    "intensity": "Medium",
+    "exercise_name": ""
+  },
+  {
+    "id": 2,
+    "title": "1st week",
+    "description": "30m",
+    "type": "workout",
+    "due_date": "May 10, 2026",
+    "is_done": true,
+    "intensity": "High",
+    "exercise_name": "Running"
+  },
+  {
+    "id": 3,
+    "title": "dwd",
+    "description": "dwwd",
+    "type": "workout",
+    "due_date": "May 10, 2026",
+    "is_done": true,
+    "intensity": "Medium",
+    "exercise_name": "-- Select Exercise --"
+  },
+  {
+    "id": 4,
+    "title": "maskhare bazi",
+    "description": "",
+    "type": "workout",
+    "due_date": "May 13, 2026",
+    "is_done": true,
+    "intensity": "Medium",
+    "exercise_name": "Jump Rope"
+  },
+  {
+    "id": 5,
+    "title": "feef",
+    "description": "ef",
+    "type": "workout",
+    "due_date": "May 13, 2026",
+    "is_done": false,
+    "intensity": "Medium",
+    "exercise_name": "Dancing"
+  }
+]

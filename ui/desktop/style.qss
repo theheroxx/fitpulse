@@ -1,0 +1,58 @@
+/* Main Window */
+QWidget#main_container {
+    background-color: rgba(0,0,0,0);
+}
+
+QWidget#content_widget {
+    background-color: #f5f7fa;
+    border-radius: 12px;
+}
+
+/* Header */
+QWidget#header {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #667eea, stop:1 #764ba2);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+QLabel#main_title {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+}
+
+QLabel#model_badge {
+    background-color: #28a745;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 16px;
+}
+
+/* Buttons */
+QPushButton {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #667eea, stop:1 #764ba2);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #5a67d8, stop:1 #6b46a0);
+}
+
+/* Chat */
+QWidget#chat_section {
+    background-color: white;
+    border-top: 1px solid #e0e0e0;
+}
+
+QTextEdit, QLineEdit {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px;
+}

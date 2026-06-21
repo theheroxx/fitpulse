@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+</head>
+<body class="app-shell no-js">
+    <header class="topbar">
+        <div class="brand"><span>⚙️</span><strong>Settings</strong></div>
+        <nav class="nav-links">
+            <a href="chat.html">Chat</a>
+            <a href="results.html">Results</a>
+            <a href="stats.html">Stats</a>
+        </nav>
+    </header>
+
+    <section class="page-header">
+        <h1 class="page-title">Personalize your hybrid experience</h1>
+        <p class="page-description">Manage your profile, choose model behavior, and keep your embedded web tools aligned with the desktop experience.</p>
+    </section>
+
+    <main class="content-grid">
+        <div class="card">
+            <div class="section-title">
+                <div>
+                    <h2>Profile settings</h2>
+                    <p>Keep your health and fitness preferences up to date.</p>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label for="user-name">Name</label>
+                    <input id="user-name" type="text" placeholder="Your name">
+                </div>
+                <div class="input-group">
+                    <label for="age">Age</label>
+                    <input id="age" type="number" min="12" max="100" placeholder="25">
+                </div>
+                <div class="input-group">
+                    <label for="fitness-level">Fitness level</label>
+                    <select id="fitness-level">
+                        <option>Beginner</option>
+                        <option selected>Intermediate</option>
+                        <option>Advanced</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="health-condition">Health condition</label>
+                    <select id="health-condition">
+                        <option>Healthy</option>
+                        <option>Minor conditions</option>
+                        <option>Chronic condition</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <button class="primary-button">Save profile</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <div>
+                    <h2>Application options</h2>
+                    <p>Adjust the behavior of the hybrid Qt/web interface.</p>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label for="model-choice">Chat model</label>
+                    <select id="model-choice">
+                        <option selected>gemma3:4b</option>
+                        <option>gemma3:7b</option>
+                        <option>gemma2:6b</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="theme-toggle">Appearance</label>
+                    <select id="theme-toggle">
+                        <option selected>Auto</option>
+                        <option>Dark</option>
+                        <option>Light</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="notifications">Notifications</label>
+                    <select id="notifications">
+                        <option selected>Enabled</option>
+                        <option>Disabled</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="data-source">Environment source</label>
+                    <select id="data-source">
+                        <option selected>Auto-detect</option>
+                        <option>Local sensors</option>
+                        <option>Manual override</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <button class="secondary-button">Reset defaults</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-bar">The web settings page now matches the rest of the hybrid UI with clearer spacing and stronger controls.</footer>
+
+    <script src="../assests/js/bridge.js"></script>
+</body>
+</html>

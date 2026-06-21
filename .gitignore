@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+
+LGBM/45.csv
+
+papers for rag/
+uploads/
+ed datasets/
+
+rag/msmarco-distilbert-base-v4/*
+!rag/msmarco-distilbert-base-v4/.gitkeep
+
+
+plan.txt
+run_web.py
+

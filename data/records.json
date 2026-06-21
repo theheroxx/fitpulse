@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "title": "dw",
+    "description": "",
+    "type": "workout",
+    "due_date": "May 13, 2026",
+    "is_done": true,
+    "intensity": "Medium",
+    "exercise_name": "HIIT"
+  },
+  {
+    "id": 2,
+    "title": "wwwww",
+    "description": "ww",
+    "type": "workout",
+    "due_date": "May 13, 2026",
+    "is_done": false,
+    "intensity": "Medium",
+    "exercise_name": "Rowing"
+  },
+  {
+    "id": 3,
+    "title": "www",
+    "description": "",
+    "type": "workout",
+    "due_date": "May 13, 2026",
+    "is_done": false,
+    "intensity": "Medium",
+    "exercise_name": "Strength Training"
+  },
+  {
+    "id": 4,
+    "title": "www",
+    "description": "",
+    "type": "workout",
+    "due_date": "May 13, 2026",
+    "is_done": false,
+    "intensity": "High",
+    "exercise_name": "Burpees"
+  }
+]

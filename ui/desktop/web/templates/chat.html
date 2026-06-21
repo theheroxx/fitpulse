@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Chat</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/chat.css">
+</head>
+<body class="app-shell chat-page no-js">
+    <header class="topbar">
+        <div class="brand"><span>⚡</span><strong>Fitness Assistant</strong></div>
+        <nav class="nav-links">
+            <a href="results.html">Results</a>
+            <a href="stats.html">Stats</a>
+            <a href="settings.html">Settings</a>
+        </nav>
+    </header>
+
+    <section class="page-header">
+        <h1 class="page-title">Chat with your AI fitness coach</h1>
+        <p class="page-description">Ask questions, clarify recommendations, and get safety-focused guidance after every analysis.</p>
+    </section>
+
+    <main class="content-grid">
+        <div class="chat-panel">
+            <article class="chat-card">
+                <div class="chat-header">
+                    <div>
+                        <h2>Conversation</h2>
+                        <p>Send a message and stay focused on calm, practical advice.</p>
+                    </div>
+                    <span id="chat-status" class="status-chip">Ready to chat</span>
+                </div>
+
+                <div class="message-area">
+                    <div class="message assistant">
+                        <div class="avatar">🤖</div>
+                        <div class="bubble">Hi there! Start by asking about your analyzed environment, risk level, or an activity.</div>
+                    </div>
+                </div>
+
+                <form id="chat-form" class="chat-form">
+                    <textarea id="chat-input" placeholder="Ask your AI coach anything..."></textarea>
+                    <div class="chat-actions">
+                        <button type="submit" class="primary-button">Send message</button>
+                        <div class="quick-prompts">
+                            <div class="prompt-chip" data-prompt="Is it safe to exercise outside today?">Safe today?</div>
+                            <div class="prompt-chip" data-prompt="What should I change in my routine for better recovery?">Recovery tips</div>
+                            <div class="prompt-chip" data-prompt="How does the environmental risk score affect my plan?">Risk score</div>
+                        </div>
+                    </div>
+                </form>
+            </article>
+
+            <aside class="summary-card">
+                <h3>Quick summary</h3>
+                <p>Your chat window stays connected to the latest analysis, so you can ask follow-up questions about safety, environment, or personal health.</p>
+                <ul class="summary-list">
+                    <li><strong>Context-aware answers</strong><br>Responses adapt to your most recent analysis and profile details.</li>
+                    <li><strong>Safety-first guidance</strong><br>Advice emphasizes secure workouts and recovery.</li>
+                    <li><strong>Fast follow-ups</strong><br>Reuse the prompts and keep the conversation moving.</li>
+                </ul>
+                <div style="margin-top: auto; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <span class="pill">Live chat</span>
+                    <span class="pill">Hybrid UI</span>
+                    <span class="pill">Web-ready</span>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer-bar">Use this chat for guidance only — always prioritize your own health and the advice of licensed experts.</footer>
+
+    <script src="../assests/js/bridge.js"></script>
+    <script src="../assests/js/chat.js"></script>
+</body>
+</html>

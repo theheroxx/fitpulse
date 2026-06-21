@@ -1,0 +1,301 @@
+# core/orchestrator.py
+
+# ============================================================================
+# SAFE RAG INITIALIZATION — only if not already done by main.py
+# ============================================================================
+import os
+os.environ['CHROMA_TELEMETRY'] = 'False'
+os.environ['ANONYMIZED_TELEMETRY'] = 'False'
+
+from ed_calculator.ed_engine import ExerciseDangerPredictor
+from detector import rule_based_detector
+from database import get_exercises, get_foods
+from transformer.recommender import generate_recommendation
+
+
+# ============================================================================
+# RAG functions — use JSON search only (thread-safe from QThread)
+# ============================================================================
+def retrieve_context(query):
+    """Thread-safe RAG retrieval using JSON files only (no ChromaDB on QThread)"""
+    import json
+    from pathlib import Path
+    
+    all_docs = []
+    json_dir = Path("./data/chroma_db")
+    
+    for collection in ["medical", "exercises", "nutrition"]:
+        json_file = json_dir / f"{collection}.json"
+        if json_file.exists():
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                query_lower = query.lower()
+                query_words = query_lower.split()
+                
+                for item in data:
+                    doc = item.get('document', '')
+                    doc_lower = doc.lower()
+                    score = sum(1 for word in query_words if word in doc_lower)
+                    if score > 0:
+                        all_docs.append((score, doc))
+            except Exception:
+                pass
+    
+    all_docs.sort(key=lambda x: x[0], reverse=True)
+    docs = [doc for score, doc in all_docs[:8]]
+    
+    return {"documents": [docs], "error": None}
+
+
+def build_query(user_data, detector_output):
+    """Build query string from user data and detector output"""
+    parts = []
+    
+    health = user_data.get('HealthCondition', '')
+    if health and health != 'Healthy':
+        parts.append(f"Health condition: {health}")
+    
+    fitness = user_data.get('FitnessLevel', '')
+    if fitness:
+        parts.append(f"Fitness level: {fitness}")
+    
+    activity = user_data.get('ActivityType', '')
+    if activity:
+        parts.append(f"Activity: {activity}")
+    
+    label = detector_output.get('label', '')
+    if label:
+        parts.append(f"Risk level: {label}")
+    
+    reasons = detector_output.get('reasons', [])
+    if reasons:
+        parts.append(f"Risk factors: {', '.join(reasons[:2])}")
+    
+    return " | ".join(parts) if parts else "fitness exercise safety"
+
+
+class PipelineCache:
+    """Singleton cache for the ExerciseDangerPredictor model"""
+    _model_instance = None
+    
+    @classmethod
+    def get_ed_predictor(cls):
+        if cls._model_instance is None:
+            cls._model_instance = ExerciseDangerPredictor()
+        return cls._model_instance
+
+
+def calculate_simple_ed_score(PL, WD, sensitive):
+    """Simple ED calculation (fallback)"""
+    score = 0
+    
+    if PL > 150:
+        score += 40
+    elif PL > 100:
+        score += 30
+    elif PL > 50:
+        score += 20
+    elif PL > 25:
+        score += 10
+    
+    if WD > 35 or WD < 0:
+        score += 30
+    elif WD > 30 or WD < 5:
+        score += 20
+    elif WD > 25 or WD < 10:
+        score += 10
+    
+    if sensitive:
+        score += 15
+    
+    return min(100, score)
+
+
+def get_simple_recommendations(ed_score, PL, WD):
+    """Get recommendations based on ED score"""
+    recommendations = []
+    
+    if ed_score >= 70:
+        recommendations.append("🚫 High risk! Avoid outdoor exercise today.")
+        recommendations.append("🏠 Consider indoor alternatives like yoga or home workouts.")
+    elif ed_score >= 50:
+        recommendations.append("⚠️ Moderate risk. Limit outdoor exercise to 20-30 minutes.")
+        recommendations.append("💧 Stay hydrated and take frequent breaks.")
+    elif ed_score >= 30:
+        recommendations.append("ℹ️ Acceptable conditions. Exercise with caution.")
+        recommendations.append("👀 Monitor how you feel during activity.")
+    else:
+        recommendations.append("✅ Good conditions for outdoor exercise.")
+    
+    if PL > 100:
+        recommendations.append("😷 Poor air quality. Consider wearing a mask if exercising outdoors.")
+    if WD > 30:
+        recommendations.append("🥵 High temperature! Exercise during cooler hours (morning/evening).")
+    elif WD < 5:
+        recommendations.append("🥶 Cold weather! Dress in layers and warm up properly.")
+    
+    return recommendations
+
+
+# core/orchestrator.py
+
+def calculate_detailed_environmental_risk(weather_data, air_data):
+    """
+    Calculate environmental risk using the mathematical model.
+    """
+    try:
+        from ed_calculator.ed_engine import ExerciseDangerMathModel
+        
+        # Initialize model if not already done
+        if not hasattr(calculate_detailed_environmental_risk, '_model'):
+            calculate_detailed_environmental_risk._model = ExerciseDangerMathModel()
+        
+        model = calculate_detailed_environmental_risk._model
+        
+        # Prepare input for the model
+        prediction_data = {
+            'PL': air_data.get('pm25', 50),  # PM2.5
+            'WD': weather_data.get('temp', 22),  # Temperature
+            'sensitive_population': False  # Default, can be passed in
+        }
+        
+        # Use the correct method name
+        result = model.calculate_danger_score(
+            PL=prediction_data['PL'],
+            WD=prediction_data['WD'],
+            sensitive_population=prediction_data['sensitive_population']
+        )
+        
+        # Format to match expected output
+        return {
+            'FINAL_SCORE': result['ED'],
+            'STATUS': result['risk_level'].upper(),
+            'RANGE': '0-100',
+            'BIAS': '+0.0',
+            'DETAILS': result
+        }
+        
+    except Exception as e:
+        print(f"ERROR in calculate_detailed_environmental_risk!! {e}")
+       # traceback.print_exc()
+        # Return fallback
+        return {
+            'FINAL_SCORE': 50,
+            'STATUS': 'MODERATE',
+            'RANGE': '0-100',
+            'BIAS': '+0.0'
+        }
+
+
+def get_risk_recommendation(risk_score):
+    """Get recommendation based on risk score"""
+    if risk_score >= 80:
+        return "🚫 No outdoor exercise - Conditions are dangerous. Stay indoors.", "danger"
+    elif risk_score >= 65:
+        return "⚠️ High risk - Very limited outdoor activity only. Keep it under 15 minutes.", "high"
+    elif risk_score >= 45:
+        return "⚠️ Moderate risk - Light exercise only. Limit to 20-30 minutes.", "moderate"
+    elif risk_score >= 30:
+        return "ℹ️ Moderate safe - Exercise with caution. Take breaks as needed.", "caution"
+    else:
+        return "✅ Fully safe - Good conditions for outdoor exercise.", "safe"
+
+
+def run_pipeline(user_input):
+    """Full system pipeline"""
+    user_data = user_input.copy()
+
+    # 1) ED Calculation
+    if "ED" not in user_data:
+        weather_data = {
+            "temp": user_data.get("Temperature", user_data.get("temp", user_data.get("WD", 22))),
+            "humid": user_data.get("Humidity", user_data.get("humid", 45)),
+            "wind": user_data.get("Wind", user_data.get("wind", 10)),
+            "uv": user_data.get("UV", user_data.get("uv", 3))
+        }
+        
+        air_data = {
+            "pm25": user_data.get("PM25", user_data.get("pm25", user_data.get("PL", 25))),
+            "pm10": user_data.get("PM10", user_data.get("pm10", 45)),
+            "co": user_data.get("CO", user_data.get("co", 200)),
+            "o3": user_data.get("O3", user_data.get("o3", 40)),
+            "no2": user_data.get("NO2", user_data.get("no2", 10)),
+            "so2": user_data.get("SO2", user_data.get("so2", 5))
+        }
+        
+        try:
+            detailed_result = calculate_detailed_environmental_risk(weather_data, air_data)
+            ed = detailed_result["FINAL_SCORE"]
+            sensitive = user_data.get("sensitive", False)
+            if sensitive:
+                ed = min(100, ed + 15)
+            user_data["ED"] = ed
+            user_data["detailed_risk"] = detailed_result
+        except Exception as e:
+            print(f"Math model error, using fallback: {e}")
+            PL = user_data.get("PL", user_data.get("PM25", 50))
+            WD = user_data.get("WD", user_data.get("Temperature", 22))
+            sensitive = user_data.get("sensitive", False)
+            ed = calculate_simple_ed_score(PL, WD, sensitive)
+            user_data["ED"] = ed
+            detailed_result = None
+    else:
+        ed = user_data["ED"]
+        detailed_result = None
+
+    PL = user_data.get("PL", user_data.get("PM25", 50))
+    WD = user_data.get("WD", user_data.get("Temperature", 22))
+    ed_recommendations = get_simple_recommendations(ed, PL, WD)
+
+    # 2) Detector
+    detector_output = rule_based_detector(user_data)
+
+    # 3) Exercise/Food Recommendations
+    user_profile = {
+        "health_condition": user_data.get("HealthCondition", "Healthy"),
+        "fitness_level": user_data.get("FitnessLevel", "Medium")
+    }
+    
+    try:
+        exercise_recommendations = get_exercises(user_profile, detector_output.get("label", "Safe"))
+        food_recommendations = get_foods(user_profile)
+    except Exception as e:
+        print(f"Database error: {e}")
+        exercise_recommendations = ["Walking", "Yoga", "Stretching"]
+        food_recommendations = ["Oatmeal", "Chicken Breast", "Broccoli"]
+    
+    if exercise_recommendations:
+        ed_recommendations.append("\n🏋️ Recommended Exercises:")
+        ed_recommendations.extend([f"  • {ex}" for ex in exercise_recommendations[:5]])
+    
+    if food_recommendations:
+        ed_recommendations.append("\n🥗 Recommended Foods:")
+        ed_recommendations.extend([f"  • {food}" for food in food_recommendations[:5]])
+
+    # 4) RAG Context (thread-safe JSON search)
+    query = build_query(user_data, detector_output)
+    try:
+        context = retrieve_context(query)
+    except Exception as e:
+        print(f"RAG retrieval error: {e}")
+        context = {"documents": [], "error": str(e)}
+
+    # 5) LLM Recommendation
+    try:
+        final_recommendation = generate_recommendation(user_data, detector_output)
+    except Exception as e:
+        print(f"LLM generation error: {e}")
+        final_recommendation = f"Unable to generate AI recommendation. Error: {e}"
+
+    return {
+        "ED": ed,
+        "detector": detector_output,
+        "ed_recommendations": ed_recommendations,
+        "exercise_recommendations": exercise_recommendations,
+        "food_recommendations": food_recommendations,
+        "rag_context": context,
+        "final_recommendation": final_recommendation,
+        "detailed_risk": detailed_result
+    }
