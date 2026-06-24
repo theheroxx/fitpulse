@@ -347,8 +347,14 @@ def init_db():
 # EXPERIENCE RECORDS
 # =============================================================================
 
+
 def save_experience_record(user_id, experience_value, emoji):
-    """Save user experience (😊, 😐, ☹️) to database"""
+    """
+    Save user experience (😊, 😐, ☹️) to database.
+    Returns the new row id (int) on success, or None on failure.
+    (Previously returned True/False — changed so callers can use the id
+     for live deduplication in history_tab.add_experience_entry.)
+    """
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -356,11 +362,10 @@ def save_experience_record(user_id, experience_value, emoji):
                 INSERT INTO experience_records (user_id, experience_value, emoji, created_at)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             """, (user_id, experience_value, emoji))
-            conn.commit()
-            return True
+            return cursor.lastrowid          # ← return id, not True
     except Exception as e:
         print(f"Error saving experience: {e}")
-        return False
+        return None                          # ← return None, not False
 
 
 def get_latest_experience(user_id):
@@ -384,22 +389,28 @@ def get_latest_experience(user_id):
         return None
 
 
-def get_experience_history(user_id, limit=20):
-    """Get experience history for a user"""
+def get_all_experience_records(user_id, limit=50):
+    """Get all experience records for a user (for history tab)"""
     try:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT experience_value, emoji, created_at
+                SELECT id, user_id, experience_value, emoji, created_at
                 FROM experience_records
                 WHERE user_id = ?
                 ORDER BY created_at DESC
                 LIMIT ?
             """, (user_id, limit))
-            return [dict(row) for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
     except Exception as e:
-        print(f"Error getting experience history: {e}")
+        print(f"Error getting all experience records: {e}")
         return []
+
+
+def get_experience_history(user_id, limit=20):
+    """Get experience history for a user (alias for get_all_experience_records)"""
+    return get_all_experience_records(user_id, limit)
 
 
 # =============================================================================

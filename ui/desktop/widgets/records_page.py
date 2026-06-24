@@ -452,8 +452,6 @@ class MealWidget(QWidget):
 
 
 class RecordItem(QWidget):
-    """Individual record widget with modern card design"""
-    
     record_changed = Signal()
     
     def __init__(self, record_id, title, description, record_type, due_date, is_done=False, 
@@ -469,6 +467,13 @@ class RecordItem(QWidget):
         self.exercise_name = exercise_name
         self.meals_data = meals_data or []
         self.setup_ui()
+    
+    def __del__(self):
+        """Ensure signals are disconnected when object is destroyed"""
+        try:
+            self.record_changed.disconnect()
+        except:
+            pass
     
     def setup_ui(self):
         self.setObjectName("record_item")
@@ -737,7 +742,8 @@ class RecordItem(QWidget):
                             self.record_type, self.due_date, self.intensity, 
                             self.exercise_name, self.meals_data)
         dialog.record_saved.connect(self.update_record)
-        dialog.exec()
+        result = dialog.exec()
+        dialog.deleteLater()  # Ensure dialog is cleaned up
     
     def on_delete(self):
         reply = QMessageBox.question(
@@ -752,8 +758,8 @@ class RecordItem(QWidget):
             except Exception as e:
                 print(f"Error deleting record: {e}")
             
+            # Emit change and let parent handle removal
             self.record_changed.emit()
-            self.deleteLater()
     
     def update_record(self, title, description, record_type, due_date, 
                     intensity="Medium", exercise_name="", meals_data=None):
@@ -1230,15 +1236,15 @@ class RecordDialog(QDialog):
 
 
 class RecordsPage(QWidget):
-    """Main records page with modern design"""
-    
+    records_changed = Signal() 
     def __init__(self, user_id=None):
         super().__init__()
         self.user_id = user_id
         self.records = []
         self.setup_ui()
         self.load_records()
-    
+
+        
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -1430,6 +1436,8 @@ class RecordsPage(QWidget):
                                 due_date, False, intensity, exercise_name, meals_data)
                 record.record_changed.connect(self.on_records_changed)
                 self.records.append(record)
+                self.records_changed.emit()
+
                 self.refresh_lists()
             else:
                 QMessageBox.warning(self, "Error", "Failed to save record.")
@@ -1438,43 +1446,57 @@ class RecordsPage(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to save record: {str(e)}")
     
     def on_records_changed(self):
-        self.refresh_lists()
+        """Reload records from database and refresh UI."""
+        self.load_records()
     
     def refresh_lists(self):
-        # Clear existing widgets
-        for i in reversed(range(self.active_layout.count())):
-            w = self.active_layout.itemAt(i).widget()
+        """Reattach all record widgets to the correct tabs without deleting."""
+        # Clear layouts without deleting widgets
+        while self.active_layout.count():
+            w = self.active_layout.takeAt(0).widget()
             if w and w != self.active_empty:
-                w.setParent(None)
+                w.setParent(None)  # Detach from layout but keep alive
         
-        for i in reversed(range(self.completed_layout.count())):
-            w = self.completed_layout.itemAt(i).widget()
+        while self.completed_layout.count():
+            w = self.completed_layout.takeAt(0).widget()
             if w and w != self.completed_empty:
                 w.setParent(None)
         
+        # Now re-add widgets in correct order
         active_count = 0
         completed_count = 0
         
         for record in self.records:
             if record.is_done:
-                self.completed_layout.insertWidget(max(0, self.completed_layout.count() - 1), record)
+                self.completed_layout.insertWidget(
+                    max(0, self.completed_layout.count() - 1), record
+                )
                 completed_count += 1
             else:
-                self.active_layout.insertWidget(max(0, self.active_layout.count() - 1), record)
+                self.active_layout.insertWidget(
+                    max(0, self.active_layout.count() - 1), record
+                )
                 active_count += 1
         
         self.active_empty.setVisible(active_count == 0)
         self.completed_empty.setVisible(completed_count == 0)
     
     def load_records(self):
+        """Clear and reload all records from database."""
         if not self.user_id:
+            self.records.clear()
+            self.refresh_lists()
             return
         
         try:
             records_data = get_user_records(self.user_id)
+            # Clear existing records to avoid duplicate widgets
+            for rec in self.records:
+                rec.deleteLater()  # schedule deletion of old widgets
+            self.records.clear()
             
             for item in records_data:
-                # Parse meals_data from JSON
+                # parse meals, metadata...
                 meals = item.get("meals_data", [])
                 if isinstance(meals, str):
                     try:
@@ -1482,11 +1504,8 @@ class RecordsPage(QWidget):
                     except:
                         meals = []
                 
-                # Parse metadata if it exists
                 intensity = item.get("intensity", "Medium")
                 exercise_name = item.get("exercise_name", "")
-                
-                # If metadata is stored as a JSON string, parse it
                 metadata = item.get("metadata", {})
                 if isinstance(metadata, str):
                     try:
@@ -1505,10 +1524,12 @@ class RecordsPage(QWidget):
                 )
                 record.record_changed.connect(self.on_records_changed)
                 self.records.append(record)
+            
+            self.refresh_lists()
+            
         except Exception as e:
             print(f"Error loading records: {e}")
-        
-        self.refresh_lists()
+            self.refresh_lists()
     
     def add_plan_from_llm(self, plan_data):
         self.add_record(plan_data)

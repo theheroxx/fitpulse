@@ -1,85 +1,110 @@
-# ui/desktop/home.py
-
 from datetime import datetime
+
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout, 
-    QVBoxLayout, 
-    QLabel, 
-    QPushButton, 
-    QGridLayout, 
-    QFrame, 
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QGridLayout,
+    QFrame,
     QSizePolicy,
-    QGraphicsDropShadowEffect
+    QGraphicsDropShadowEffect,
+    QSpacerItem,
 )
 from PySide6.QtCore import (
-    Qt, 
-    QPropertyAnimation, 
-    QEasingCurve, 
-    QTimer
+    Qt,
+    QPropertyAnimation,
+    QEasingCurve,
+    QTimer,
+    QPointF,
 )
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont
 
 from database.db import get_user_records, save_experience_record
 
 
+# ─────────────────────────────────────────────
+# Design Tokens
+# ─────────────────────────────────────────────
+NAVY        = "#0D1B2A"
+NAVY_LIGHT  = "#162536"
+BLUE        = "#2979FF"
+BLUE_DARK   = "#1A56DB"
+MINT        = "#00E5A0"
+MINT_DARK   = "#00C488"
+WHITE       = "#FFFFFF"
+BG          = "#F0F4FA"
+CARD_BG     = "#FFFFFF"
+BORDER      = "#E3EAF2"
+TEXT_HEAD   = "#0D1B2A"
+TEXT_BODY   = "#3D5166"
+TEXT_MUTED  = "#8BA0B8"
+SHADOW      = QColor(13, 27, 42, 22)
+
+
 class ElevatedCard(QFrame):
-    """
-    Custom frame that handles its own micro-interactions cleanly, 
-    preventing geometry layout thrashing.
-    """
+    """Card with a subtle lift animation on hover (shadow only, no geometry shift)."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-        # Setup modern premium drop shadow
+
         self.shadow = QGraphicsDropShadowEffect(self)
-        self.shadow.setBlurRadius(25)
-        self.shadow.setOffset(0, 6)
-        self.shadow.setColor(QColor(15, 23, 42, 30))
+        self.shadow.setBlurRadius(20)
+        self.shadow.setOffset(0, 4)
+        self.shadow.setColor(SHADOW)
         self.setGraphicsEffect(self.shadow)
 
-        # Drop shadow lifting animation
-        self.anim = QPropertyAnimation(self.shadow, b"blurRadius")
-        self.anim.setDuration(180)
-        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
-        self.offset_anim = QPropertyAnimation(self.shadow, b"offset")
-        self.offset_anim.setDuration(180)
-        self.offset_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._blur_anim = QPropertyAnimation(self.shadow, b"blurRadius")
+        self._blur_anim.setDuration(200)
+        self._blur_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
     def enterEvent(self, event):
-        self.anim.stop()
-        self.offset_anim.stop()
-        
-        self.anim.setEndValue(40)
-        self.offset_anim.setEndValue(Qt.core.QPointF(0, 12) if hasattr(Qt, 'core') else (0, 12)) 
-        
-        self.anim.start()
-        self.offset_anim.start()
+        self._blur_anim.stop()
+        self._blur_anim.setEndValue(38)
+        self._blur_anim.start()
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        self.anim.stop()
-        self.offset_anim.stop()
-        
-        self.anim.setEndValue(25)
-        self.offset_anim.setEndValue(Qt.core.QPointF(0, 6) if hasattr(Qt, 'core') else (0, 6))
-        
-        self.anim.start()
-        self.offset_anim.start()
+        self._blur_anim.stop()
+        self._blur_anim.setEndValue(20)
+        self._blur_anim.start()
         super().leaveEvent(event)
 
 
+class LogoLabel(QLabel):
+    """
+    FitPulse logo rendered as rich text with two-tone lettering
+    and a small SVG pulse-line icon.
+    """
+
+    LOGO_HTML = (
+        '<span style="'
+        'font-family: Inter, Helvetica Neue, Arial, sans-serif;'
+        'font-size: 26px;'
+        'font-weight: 800;'
+        'letter-spacing: -0.5px;'
+        '">'
+        f'<span style="color: {NAVY};">FIT</span>'
+        f'<span style="color: {BLUE};">PULSE</span>'
+        '</span>'
+        # Tiny pulse line encoded as Unicode approximation
+        f'<span style="color:{MINT}; font-size:22px; font-weight:900;"> ⚡</span>'
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText(self.LOGO_HTML)
+        self.setTextFormat(Qt.TextFormat.RichText)
+
+
 class HomePage(QWidget):
-    """
-    Modern animated premium homepage UI core
-    """
+    """Modern professional fitness dashboard homepage."""
+
     def __init__(self, main_container=None):
         super().__init__()
         self.main_container = main_container
         self.sidebar_visible = False
-        
-        # Store the latest experience emoji
         self.latest_experience = None
 
         self.setup_ui()
@@ -97,261 +122,281 @@ class HomePage(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        # -----------------------------------------------------
-        # LEFT MAIN AREA
-        # -----------------------------------------------------
+        # ── LEFT MAIN AREA ────────────────────────────────────
         left_container = QWidget()
         left_container.setObjectName("leftContainer")
 
         left_layout = QVBoxLayout(left_container)
-        left_layout.setContentsMargins(28, 20, 28, 20)
-        left_layout.setSpacing(20)
+        left_layout.setContentsMargins(32, 22, 32, 24)
+        left_layout.setSpacing(0)
 
-        # Top Nav Bar
+        # ── TOP NAV ───────────────────────────────────────────
         top_bar = QHBoxLayout()
-        logo = QLabel("FITPULSE")
-        logo.setObjectName("logo")
+        top_bar.setContentsMargins(0, 0, 0, 0)
+
+        logo = LogoLabel()
         top_bar.addWidget(logo)
         top_bar.addStretch()
 
         icon_layout = QHBoxLayout()
-        icon_layout.setSpacing(14)
+        icon_layout.setSpacing(10)
 
-        search_btn = QPushButton("🔍")
-        profile_btn = QPushButton("👤")
+        for obj_name, icon in [("topIconBtn", "🔍"), ("topIconBtn", "👤")]:
+            btn = QPushButton(icon)
+            btn.setFixedSize(40, 40)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setObjectName(obj_name)
+            icon_layout.addWidget(btn)
+
         self.menu_btn = QPushButton("☰")
-
-        self.menu_btn.setFixedSize(42, 42)
+        self.menu_btn.setFixedSize(40, 40)
         self.menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.menu_btn.setObjectName("topIconBtn")
         self.menu_btn.clicked.connect(self.toggle_sidebar)
-
-        for btn in [search_btn, profile_btn]:
-            btn.setFixedSize(42, 42)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setObjectName("topIconBtn")
-            icon_layout.addWidget(btn)
-
         icon_layout.addWidget(self.menu_btn)
+
         top_bar.addLayout(icon_layout)
         left_layout.addLayout(top_bar)
+        left_layout.addSpacing(8)
 
-        # -----------------------------------------------------
-        # DASHBOARD GRID
-        # -----------------------------------------------------
+        # ── GREETING ─────────────────────────────────────────
+        greeting = QLabel("Good morning 👋")
+        greeting.setObjectName("greetingLabel")
+        left_layout.addWidget(greeting)
+
+        tagline = QLabel("Here's your fitness snapshot for today.")
+        tagline.setObjectName("taglineLabel")
+        left_layout.addWidget(tagline)
+        left_layout.addSpacing(22)
+
+        # ── DIVIDER ───────────────────────────────────────────
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setObjectName("divider")
+        divider.setFixedHeight(1)
+        left_layout.addWidget(divider)
+        left_layout.addSpacing(22)
+
+        # ── DASHBOARD GRID ────────────────────────────────────
         grid = QGridLayout()
-        grid.setHorizontalSpacing(24)
-        grid.setVerticalSpacing(24)
+        grid.setHorizontalSpacing(20)
+        grid.setVerticalSpacing(20)
 
-        self.latest_card = self.create_card(
-            title="YOUR LATEST WORK",
-            title_color="#10b981",
-            main_text="Loading...",
+        self.latest_card = self.create_stat_card(
+            accent=BLUE,
+            tag="LATEST WORKOUT",
+            main_text="Loading…",
             sub_text="",
-            right_text="🏋"
+            icon="🏋️",
         )
 
-        self.rest_card = self.create_card(
-            title="TO DO & AVOID TODAY",
-            title_color="#3b82f6",
-            main_text="Loading...",
+        self.rest_card = self.create_stat_card(
+            accent=MINT,
+            tag="RECOVERY ADVICE",
+            main_text="Loading…",
             sub_text="",
-            right_text="🧠"
+            icon="🧠",
         )
 
-        # Pass reference to self for emoji handling
         self.diet_card = self.create_interaction_card(
-            title="HOW WAS YOUR DIET?",
-            subtitle="Share your last week's experience",
-            emojis=["😊", "😐", "☹️"]
+            accent=BLUE,
+            tag="DIET CHECK-IN",
+            subtitle="How did your eating go this week?",
+            emojis=["😊", "😐", "☹️"],
         )
 
         record_card = self.create_interaction_card(
-            title="SET NEW RECORDS!",
-            subtitle="Track your improvements",
-            emojis=["🏆"]
+            accent=MINT,
+            tag="NEW RECORD",
+            subtitle="Log a personal best today",
+            emojis=["🏆"],
         )
 
         grid.addWidget(self.latest_card, 0, 0)
-        grid.addWidget(self.diet_card, 0, 1)
-        grid.addWidget(self.rest_card, 1, 0)
-        grid.addWidget(record_card, 1, 1)
+        grid.addWidget(self.diet_card,   0, 1)
+        grid.addWidget(self.rest_card,   1, 0)
+        grid.addWidget(record_card,      1, 1)
 
         left_layout.addLayout(grid)
         left_layout.addStretch()
 
-        # Bottom Action Bar
+        # ── BOTTOM ACTION BAR ─────────────────────────────────
+        left_layout.addSpacing(16)
         bottom_bar = QHBoxLayout()
         bottom_bar.addStretch()
 
-        start_btn = QPushButton("🚀 Start Training")
-        start_btn.setFixedSize(190, 58)
-        start_btn.setObjectName("bottomHomeBtn")
+        start_btn = QPushButton("🚀  Start Training")
+        start_btn.setFixedSize(200, 52)
+        start_btn.setObjectName("primaryBtn")
+        start_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         start_btn.clicked.connect(self.open_records_page)
 
         bottom_bar.addWidget(start_btn)
         bottom_bar.addStretch()
         left_layout.addLayout(bottom_bar)
 
-        # -----------------------------------------------------
-        # SIDEBAR PANEL
-        # -----------------------------------------------------
+        # ── SIDEBAR ───────────────────────────────────────────
         self.sidebar = QFrame()
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setMaximumWidth(0)
         self.sidebar.setMinimumWidth(0)
 
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(16, 24, 16, 24)
-        sidebar_layout.setSpacing(12)
+        sidebar_layout.setContentsMargins(14, 28, 14, 28)
+        sidebar_layout.setSpacing(6)
+
+        sidebar_header = QLabel("Menu")
+        sidebar_header.setObjectName("sidebarHeader")
+        sidebar_layout.addWidget(sidebar_header)
+        sidebar_layout.addSpacing(10)
 
         sidebar_items = [
-            "📋 Records",
-            "🍽 Diet",
-            "🏋 Exercise Plan",
-            "⛅ Weather",
-            "🦴 Body Posture",
+            ("📋", "Records"),
+            ("🍽️", "Diet"),
+            ("🏋️", "Exercise Plan"),
+            ("⛅", "Weather"),
+            ("🦴", "Body Posture"),
         ]
 
-        for index, item in enumerate(sidebar_items):
-            btn = QPushButton(item)
-            btn.setMinimumHeight(58)
+        for index, (icon, label) in enumerate(sidebar_items):
+            btn = QPushButton(f"  {icon}  {label}")
+            btn.setMinimumHeight(52)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setObjectName("sidebarButton")
             sidebar_layout.addWidget(btn)
-
             if index == 0:
                 btn.clicked.connect(self.open_records_page)
 
         sidebar_layout.addStretch()
 
-        # Assembly
+        version_lbl = QLabel("FitPulse v1.0")
+        version_lbl.setObjectName("sidebarVersion")
+        version_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sidebar_layout.addWidget(version_lbl)
+
+        # ── ASSEMBLE ──────────────────────────────────────────
         self.main_layout.addWidget(left_container)
         self.main_layout.addWidget(self.sidebar)
 
         self.apply_styles()
 
-        # Active poll dynamic updates
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.load_dynamic_data)
         self.refresh_timer.start(4000)
 
     # =========================================================
-    # COMPONENT CREATION (COMPACT ENGINE)
+    # CARD FACTORIES
     # =========================================================
 
-    def create_card(self, title, title_color, main_text, sub_text, right_text):
+    def create_stat_card(self, accent, tag, main_text, sub_text, icon):
+        """Information card with left accent bar and large icon."""
         card = ElevatedCard()
-        card.setObjectName("dashboardCard")
-        card.setMinimumHeight(260)
+        card.setObjectName("statCard")
+        card.setMinimumHeight(210)
 
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        outer = QHBoxLayout(card)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
 
-        header = QLabel(title)
-        header.setObjectName("cardHeader")
-        header.setStyleSheet(f"""
-            QLabel#cardHeader {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                            stop:0 {title_color}, stop:1 rgba(255,255,255,0.12));
-            }}
-        """)
-        header.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        header.setFixedHeight(52)
-        layout.addWidget(header)
+        # Left accent bar
+        bar = QFrame()
+        bar.setFixedWidth(5)
+        bar.setObjectName("accentBar")
+        bar.setStyleSheet(f"background: {accent}; border-radius: 3px;")
+        outer.addWidget(bar)
 
-        body = QWidget()
-        body_layout = QHBoxLayout(body)
-        body_layout.setContentsMargins(28, 28, 28, 28)
-        body_layout.setSpacing(20)
+        inner = QVBoxLayout()
+        inner.setContentsMargins(22, 20, 22, 20)
+        inner.setSpacing(6)
 
-        left_vbox = QVBoxLayout()
-        left_vbox.setSpacing(12)
+        tag_lbl = QLabel(tag)
+        tag_lbl.setObjectName("cardTag")
+        tag_lbl.setStyleSheet(f"color: {accent};")
 
-        title_label = QLabel(main_text)
-        title_label.setObjectName("cardMainText")
-        title_label.setWordWrap(True)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-        title_label.setMinimumHeight(80)
-        title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        main_lbl = QLabel(main_text)
+        main_lbl.setObjectName("cardMainText")
+        main_lbl.setWordWrap(True)
 
-        sub_label = QLabel(sub_text)
-        sub_label.setObjectName("cardSubText")
-        sub_label.setWordWrap(True)
-        sub_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-        sub_label.setMinimumHeight(50)
-        sub_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        sub_lbl = QLabel(sub_text)
+        sub_lbl.setObjectName("cardSubText")
+        sub_lbl.setWordWrap(True)
 
-        left_vbox.addWidget(title_label)
-        left_vbox.addWidget(sub_label)
-        left_vbox.addStretch()
+        inner.addWidget(tag_lbl)
+        inner.addSpacing(4)
+        inner.addWidget(main_lbl)
+        inner.addWidget(sub_lbl)
+        inner.addStretch()
 
-        right_label = QLabel(right_text)
-        right_label.setObjectName("cardRightText")
-        right_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        right_label.setMinimumWidth(70)
+        outer.addLayout(inner, 1)
 
-        body_layout.addLayout(left_vbox, 1)
-        body_layout.addWidget(right_label)
-        layout.addWidget(body)
+        # Large icon on right
+        icon_lbl = QLabel(icon)
+        icon_lbl.setObjectName("cardIcon")
+        icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_lbl.setFixedWidth(72)
+        outer.addWidget(icon_lbl)
+        outer.addSpacing(12)
 
-        # Keep safe runtime handles to layout children 
-        card.title_label = title_label
-        card.sub_label = sub_label
-        card.right_label = right_label
+        card.main_lbl = main_lbl
+        card.sub_lbl  = sub_lbl
+        card.icon_lbl = icon_lbl
+        # legacy attribute aliases used by load_dynamic_data
+        card.title_label = main_lbl
+        card.sub_label   = sub_lbl
+        card.right_label = icon_lbl
 
         return card
 
-    def create_interaction_card(self, title, subtitle, emojis):
+    def create_interaction_card(self, accent, tag, subtitle, emojis):
+        """Engagement card with emoji buttons."""
         card = ElevatedCard()
         card.setObjectName("interactionCard")
         card.setMinimumHeight(210)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(18)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(10)
 
-        bubble = QLabel(title)
-        bubble.setObjectName("bubbleTitle")
-        bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bubble.setFixedHeight(70)
+        # Tag chip
+        tag_row = QHBoxLayout()
+        tag_chip = QLabel(tag)
+        tag_chip.setObjectName("cardTagChip")
+        tag_chip.setStyleSheet(
+            f"background: {accent}; color: white;"
+            f" border-radius: 10px; padding: 3px 12px;"
+            f" font-size: 11px; font-weight: 700; letter-spacing: 0.8px;"
+        )
+        tag_chip.setFixedHeight(24)
+        tag_row.addWidget(tag_chip)
+        tag_row.addStretch()
+        layout.addLayout(tag_row)
 
-        subtitle_label = QLabel(subtitle)
-        subtitle_label.setObjectName("bubbleSubtitle")
-        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle_label.setWordWrap(True)
+        sub_lbl = QLabel(subtitle)
+        sub_lbl.setObjectName("cardSubText")
+        sub_lbl.setWordWrap(True)
+
+        layout.addWidget(sub_lbl)
+        layout.addSpacing(6)
 
         emoji_row = QHBoxLayout()
-        emoji_row.setSpacing(16)
+        emoji_row.setSpacing(12)
         emoji_row.addStretch()
 
-        # Store buttons for later access
         emoji_buttons = []
-        
         for emoji in emojis:
             btn = QPushButton(emoji)
             btn.setObjectName("emojiBtn")
-            btn.setFixedSize(68, 68)
+            btn.setFixedSize(62, 62)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            
-            # FIXED: No 'checked' parameter for QPushButton
             btn.clicked.connect(lambda checked=False, e=emoji: self.on_experience_selected(e))
-            
             emoji_row.addWidget(btn)
             emoji_buttons.append(btn)
 
         emoji_row.addStretch()
-
-        layout.addWidget(bubble)
-        layout.addWidget(subtitle_label)
-        layout.addSpacing(6)
         layout.addLayout(emoji_row)
         layout.addStretch()
 
-        # Store reference to emoji buttons for UI feedback
         card.emoji_buttons = emoji_buttons
-
         return card
 
     # =========================================================
@@ -359,64 +404,45 @@ class HomePage(QWidget):
     # =========================================================
 
     def on_experience_selected(self, emoji):
-        """
-        Handle emoji selection from the experience card.
-        Saves the experience to database and updates UI feedback.
-        """
-        print(f"📊 Experience selected: {emoji}")
-        
-        # Store the latest experience
         self.latest_experience = emoji
-        
-        # Map emoji to experience value
-        experience_map = {
-            "😊": "good",
-            "😐": "neutral",
-            "☹️": "bad"
-        }
+        experience_map = {"😊": "good", "😐": "neutral", "☹️": "bad"}
         experience_value = experience_map.get(emoji, "neutral")
-        
-        # Save to database (if user is logged in)
-        if self.main_container and hasattr(self.main_container, 'current_user'):
-            user_id = self.main_container.current_user.get('id')
+
+        record_id = None
+        if self.main_container and hasattr(self.main_container, "current_user"):
+            user_id = (self.main_container.current_user or {}).get("id")
             if user_id:
                 try:
-                    save_experience_record(user_id, experience_value, emoji)
-                    print(f"✅ Experience saved: {experience_value} ({emoji})")
+                    # save_experience_record returns the new row id (int) on success
+                    record_id = save_experience_record(user_id, experience_value, emoji)
                 except Exception as e:
                     print(f"❌ Failed to save experience: {e}")
-            else:
-                print("⚠️ No user ID found, experience not saved")
-        else:
-            print("⚠️ No user context, experience not saved")
-        
-        # Update UI feedback - highlight selected emoji
+
+        # ── Live-push to history tab (attribute is history_page in MainContainer) ──
+        if self.main_container and hasattr(self.main_container, "history_page"):
+            ht = self.main_container.history_page
+            if ht is not None:
+                try:
+                    ht.push_experience(emoji, experience_value, record_id)
+                except Exception as e:
+                    print(f"⚠️ Could not push to history tab: {e}")
+
         self.update_emoji_feedback(emoji)
 
     def update_emoji_feedback(self, selected_emoji):
-        """Visually highlight the selected emoji button"""
-        # Find the diet card and its emoji buttons
         for child in self.findChildren(ElevatedCard):
-            if hasattr(child, 'emoji_buttons'):
+            if hasattr(child, "emoji_buttons"):
                 for btn in child.emoji_buttons:
                     if btn.text() == selected_emoji:
-                        btn.setStyleSheet("""
-                            QPushButton {
-                                background: #dbeafe;
-                                border: 2px solid #2563eb;
-                                border-radius: 22px;
-                                font-size: 26px;
-                            }
-                        """)
+                        btn.setStyleSheet(
+                            f"QPushButton {{ background: #E8F0FE; border: 2px solid {BLUE};"
+                            f" border-radius: 20px; font-size: 24px; }}"
+                        )
                     else:
-                        btn.setStyleSheet("""
-                            QPushButton {
-                                background: white;
-                                border: 1px solid #e2e8f0;
-                                border-radius: 22px;
-                                font-size: 26px;
-                            }
-                        """)
+                        btn.setStyleSheet(
+                            "QPushButton { background: #F6F9FF; border: 1px solid #E3EAF2;"
+                            " border-radius: 20px; font-size: 24px; }"
+                        )
 
     # =========================================================
     # ANIMATIONS & NAVIGATION
@@ -424,20 +450,18 @@ class HomePage(QWidget):
 
     def setup_animations(self):
         self.sidebar_animation = QPropertyAnimation(self.sidebar, b"maximumWidth")
-        self.sidebar_animation.setDuration(350)
+        self.sidebar_animation.setDuration(320)
         self.sidebar_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
 
     def toggle_sidebar(self):
         self.sidebar_animation.stop()
         self.sidebar_animation.setStartValue(self.sidebar.width())
-        
         if self.sidebar_visible:
             self.sidebar_animation.setEndValue(0)
             self.sidebar_visible = False
         else:
-            self.sidebar_animation.setEndValue(240)
+            self.sidebar_animation.setEndValue(230)
             self.sidebar_visible = True
-            
         self.sidebar_animation.start()
 
     def open_records_page(self):
@@ -445,27 +469,25 @@ class HomePage(QWidget):
             self.main_container.go_to_records()
 
     # =========================================================
-    # DYNAMIC DATA CONTROLLERS
+    # DYNAMIC DATA
     # =========================================================
 
     def load_records(self):
-        if not self.main_container or not getattr(self.main_container, 'current_user', None):
+        if not self.main_container or not getattr(self.main_container, "current_user", None):
             return []
         try:
-            user_id = self.main_container.current_user['id']
+            user_id = self.main_container.current_user["id"]
             records = get_user_records(user_id)
-            formatted_records = []
-
-            for record in records:
-                formatted_record = dict(record)
-                if "record_type" in formatted_record:
-                    formatted_record["type"] = formatted_record.pop("record_type")
-                formatted_record["is_done"] = bool(formatted_record.get("is_done", 0))
-                formatted_records.append(formatted_record)
-
-            return formatted_records
+            formatted = []
+            for r in records:
+                rec = dict(r)
+                if "record_type" in rec:
+                    rec["type"] = rec.pop("record_type")
+                rec["is_done"] = bool(rec.get("is_done", 0))
+                formatted.append(rec)
+            return formatted
         except Exception as e:
-            print(f"Error loading records securely: {e}")
+            print(f"Error loading records: {e}")
             return []
 
     def load_dynamic_data(self):
@@ -475,8 +497,8 @@ class HomePage(QWidget):
 
     def update_latest_work(self, records):
         if not records:
-            self.latest_card.title_label.setText("Start your workout journey")
-            self.latest_card.sub_label.setText("Create your first workout or diet record now.")
+            self.latest_card.title_label.setText("Start your journey")
+            self.latest_card.sub_label.setText("Create your first workout or diet record.")
             self.latest_card.right_label.setText("🚀")
             return
 
@@ -487,27 +509,23 @@ class HomePage(QWidget):
             title = latest.get("exercise_name") or latest.get("title") or "Workout"
             intensity = latest.get("intensity", "Medium")
             duration = latest.get("duration")
-            extra = f" • {duration} min" if duration else ""
-
+            extra = f" · {duration} min" if duration else ""
             self.latest_card.title_label.setText(title)
-            self.latest_card.sub_label.setText(f"{intensity} intensity workout{extra}")
-            self.latest_card.right_label.setText("🏋")
+            self.latest_card.sub_label.setText(f"{intensity} intensity{extra}")
+            self.latest_card.right_label.setText("🏋️")
 
         elif record_type == "diet":
             meal = latest.get("meal_type", "Diet")
             calories = latest.get("calories")
-            calorie_text = f" • {calories} kcal" if calories else ""
-
+            calorie_text = f" · {calories} kcal" if calories else ""
             self.latest_card.title_label.setText(latest.get("title", meal))
             self.latest_card.sub_label.setText(f"{meal}{calorie_text}")
-            self.latest_card.right_label.setText("🍽")
+            self.latest_card.right_label.setText("🍽️")
 
         else:
             self.latest_card.title_label.setText(latest.get("title", "New Record"))
             notes = latest.get("notes", "New activity added.")
-            if len(notes) > 85:
-                notes = notes[:85] + "..."
-            self.latest_card.sub_label.setText(notes)
+            self.latest_card.sub_label.setText(notes[:85] + "…" if len(notes) > 85 else notes)
             self.latest_card.right_label.setText("📋")
 
     def update_rest_logic(self, records):
@@ -531,181 +549,198 @@ class HomePage(QWidget):
         if days <= 1:
             if intensity == "High":
                 self.rest_card.title_label.setText("Recovery Day")
-                self.rest_card.sub_label.setText("Avoid intense training today. Focus on hydration and sleep.")
+                self.rest_card.sub_label.setText("Avoid intense training. Focus on hydration and sleep.")
                 self.rest_card.right_label.setText("🛌")
             elif intensity == "Medium":
-                self.rest_card.title_label.setText("Light Activity Recommended")
-                self.rest_card.sub_label.setText("Stretching, walking, or light cardio is ideal today.")
+                self.rest_card.title_label.setText("Light Activity")
+                self.rest_card.sub_label.setText("Stretching or light cardio is ideal today.")
                 self.rest_card.right_label.setText("🚶")
             else:
                 self.rest_card.title_label.setText("You're Ready")
-                self.rest_card.sub_label.setText("Low fatigue detected. You can train normally.")
+                self.rest_card.sub_label.setText("Low fatigue detected — train normally.")
                 self.rest_card.right_label.setText("✅")
         elif days <= 3:
-            self.rest_card.title_label.setText("Time To Train Again")
+            self.rest_card.title_label.setText("Time to Train")
             self.rest_card.sub_label.setText("Your body should be sufficiently recovered.")
             self.rest_card.right_label.setText("🔥")
         else:
-            self.rest_card.title_label.setText("You've Been Inactive")
-            self.rest_card.sub_label.setText("Try restarting with a moderate workout today.")
+            self.rest_card.title_label.setText("Been a While")
+            self.rest_card.sub_label.setText("Restart with a moderate workout today.")
             self.rest_card.right_label.setText("⚡")
 
     # =========================================================
-    # GLOBAL STYLESHEET APPLICATION
+    # STYLESHEET
     # =========================================================
 
     def apply_styles(self):
-        self.setStyleSheet("""
-            QWidget#homePage {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #eef4ff, stop:1 #f8fbff);
-            }
-            QWidget#leftContainer {
-                background: transparent;
-            }
-            QLabel#logo {
-                font-size: 38px;
-                font-weight: 900;
-                color: #2563eb;
-                letter-spacing: 3px;
-            }
-            QPushButton#topIconBtn {
-                background: rgba(255,255,255,0.85);
-                border: 1px solid rgba(255,255,255,0.6);
-                border-radius: 16px;
-                font-size: 18px;
-                color: #0f172a;
-            }
-            QPushButton#topIconBtn:hover {
-                background: white;
-                border: 1px solid #93c5fd;
-                padding-bottom: 2px;
-            }
-            QPushButton#topIconBtn:pressed {
-                background: #dbeafe;
-            }
-            QFrame#dashboardCard {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                            stop:0 rgba(255,255,255,0.98), stop:1 rgba(248,250,252,0.95));
-                border-radius: 30px;
-                border: 1px solid rgba(226,232,240,0.9);
-            }
-            QFrame#dashboardCard:hover {
-                border: 1px solid #bfdbfe;
-                background: white;
-            }
-            QLabel#cardHeader {
-                color: white;
-                padding-left: 22px;
-                font-size: 14px;
-                font-weight: 900;
-                letter-spacing: 1px;
-                border-top-left-radius: 30px;
-                border-top-right-radius: 30px;
-            }
-            QLabel#cardMainText {
-                color: #0f172a;
-                font-size: 28px;
-                font-weight: 800;
-                line-height: 36px;
-            }
-            QLabel#cardSubText {
-                color: #64748b;
-                font-size: 15px;
-                line-height: 24px;
-                font-weight: 500;
-            }
-            QLabel#cardRightText {
-                color: #0f172a;
-                font-size: 42px;
-                font-weight: 700;
-                padding-left: 12px;
-            }
-            QFrame#interactionCard {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                            stop:0 rgba(255,255,255,0.95), stop:1 rgba(245,248,255,0.92));
-                border-radius: 30px;
-                border: 1px solid rgba(226,232,240,0.8);
-            }
-            QFrame#interactionCard:hover {
-                border: 1px solid #c7d2fe;
-            }
-            QLabel#bubbleTitle {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563eb, stop:1 #4f46e5);
-                border: none;
-                border-radius: 24px;
-                color: white;
-                font-size: 22px;
-                font-weight: 800;
-                padding-left: 14px;
-                padding-right: 14px;
-            }
-            QLabel#bubbleSubtitle {
-                color: #475569;
-                font-size: 15px;
-                font-weight: 500;
-                padding-left: 6px;
-                padding-right: 6px;
-            }
-            QPushButton#emojiBtn {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 22px;
-                font-size: 26px;
-            }
-            QPushButton#emojiBtn:hover {
-                background: #f8fbff;
-                border: 1px solid #60a5fa;
-                margin-top: -2px;
-            }
-            QPushButton#emojiBtn:pressed {
-                background: #dbeafe;
-            }
-            QFrame#sidebar {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0f172a, stop:1 #111827);
-                border-top-left-radius: 34px;
-                border-bottom-left-radius: 34px;
-                margin-top: 12px;
-                margin-bottom: 12px;
-            }
-            QPushButton#sidebarButton {
-                background: transparent;
-                border: none;
-                border-radius: 20px;
-                color: #e2e8f0;
-                text-align: left;
-                padding-left: 22px;
-                font-size: 16px;
-                font-weight: 600;
-            }
-            QPushButton#sidebarButton:hover {
-                background: rgba(255,255,255,0.08);
-                padding-left: 28px;
-            }
-            QPushButton#sidebarButton:pressed {
-                background: rgba(255,255,255,0.12);
-            }
-            QPushButton#bottomHomeBtn {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563eb, stop:1 #4f46e5);
-                border: none;
-                border-radius: 24px;
-                color: white;
-                font-size: 18px;
-                font-weight: 800;
-                padding-left: 18px;
-                padding-right: 18px;
-            }
-            QPushButton#bottomHomeBtn:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1d4ed8, stop:1 #4338ca);
-                margin-top: -2px;
-            }
-            QPushButton#bottomHomeBtn:pressed {
-                background: #1e40af;
-            }
-            QTooltip {
-                background: white;
-                color: #0f172a;
-                border: 1px solid #dbeafe;
-                padding: 8px 12px;
-                border-radius: 10px;
-            }
+        self.setStyleSheet(f"""
+
+        /* ── Page Background ── */
+        QWidget#homePage {{
+            background: {BG};
+        }}
+        QWidget#leftContainer {{
+            background: transparent;
+        }}
+
+        /* ── Greeting ── */
+        QLabel#greetingLabel {{
+            font-size: 20px;
+            font-weight: 700;
+            color: {TEXT_HEAD};
+            margin-top: 18px;
+        }}
+        QLabel#taglineLabel {{
+            font-size: 13px;
+            color: {TEXT_MUTED};
+            font-weight: 400;
+            margin-top: 2px;
+        }}
+
+        /* ── Divider ── */
+        QFrame#divider {{
+            background: {BORDER};
+            border: none;
+        }}
+
+        /* ── Top Nav Icon Buttons ── */
+        QPushButton#topIconBtn {{
+            background: {WHITE};
+            border: 1px solid {BORDER};
+            border-radius: 12px;
+            font-size: 16px;
+            color: {TEXT_HEAD};
+        }}
+        QPushButton#topIconBtn:hover {{
+            background: {WHITE};
+            border: 1px solid {BLUE};
+        }}
+        QPushButton#topIconBtn:pressed {{
+            background: #E8F0FE;
+        }}
+
+        /* ── Stat Card ── */
+        QFrame#statCard {{
+            background: {CARD_BG};
+            border-radius: 18px;
+            border: 1px solid {BORDER};
+        }}
+        QFrame#statCard:hover {{
+            border: 1px solid #A8C4FF;
+        }}
+        QLabel#cardTag {{
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }}
+        QLabel#cardMainText {{
+            color: {TEXT_HEAD};
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 30px;
+        }}
+        QLabel#cardSubText {{
+            color: {TEXT_BODY};
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 20px;
+        }}
+        QLabel#cardIcon {{
+            font-size: 38px;
+        }}
+
+        /* ── Interaction Card ── */
+        QFrame#interactionCard {{
+            background: {CARD_BG};
+            border-radius: 18px;
+            border: 1px solid {BORDER};
+        }}
+        QFrame#interactionCard:hover {{
+            border: 1px solid #A8C4FF;
+        }}
+
+        /* ── Emoji Buttons ── */
+        QPushButton#emojiBtn {{
+            background: #F6F9FF;
+            border: 1px solid {BORDER};
+            border-radius: 20px;
+            font-size: 24px;
+        }}
+        QPushButton#emojiBtn:hover {{
+            background: #EBF2FF;
+            border: 1px solid {BLUE};
+        }}
+        QPushButton#emojiBtn:pressed {{
+            background: #D6E4FF;
+        }}
+
+        /* ── Primary CTA Button ── */
+        QPushButton#primaryBtn {{
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 {BLUE}, stop:1 #5C6BC0);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }}
+        QPushButton#primaryBtn:hover {{
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 {BLUE_DARK}, stop:1 #4A5BB8);
+        }}
+        QPushButton#primaryBtn:pressed {{
+            background: {BLUE_DARK};
+        }}
+
+        /* ── Sidebar ── */
+        QFrame#sidebar {{
+            background: {NAVY};
+            border-top-left-radius: 28px;
+            border-bottom-left-radius: 28px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }}
+        QLabel#sidebarHeader {{
+            color: {TEXT_MUTED};
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            padding-left: 8px;
+        }}
+        QLabel#sidebarVersion {{
+            color: #2D4055;
+            font-size: 11px;
+            font-weight: 500;
+        }}
+        QPushButton#sidebarButton {{
+            background: transparent;
+            border: none;
+            border-radius: 14px;
+            color: #C8D8E8;
+            text-align: left;
+            padding-left: 14px;
+            font-size: 14px;
+            font-weight: 500;
+        }}
+        QPushButton#sidebarButton:hover {{
+            background: rgba(255,255,255,0.07);
+            color: white;
+            padding-left: 18px;
+        }}
+        QPushButton#sidebarButton:pressed {{
+            background: rgba(255,255,255,0.12);
+        }}
+
+        /* ── Tooltip ── */
+        QToolTip {{
+            background: {WHITE};
+            color: {TEXT_HEAD};
+            border: 1px solid {BORDER};
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+        }}
+
         """)
