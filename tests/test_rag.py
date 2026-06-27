@@ -2,7 +2,6 @@
 import sys
 import os
 
-# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from rag.retriever import retrieve_context
@@ -13,11 +12,10 @@ def test_rag_queries():
     """Test RAG retrieval with various queries"""
     
     print("=" * 70)
-    print("🔍 RAG SYSTEM TEST - Database Content")
+    print(" RAG SYSTEM TEST - Database Content")
     print("=" * 70)
     
-    # First, show what's in the database collections
-    print("\n📊 RAG Collection Statistics:")
+    print("\n RAG Collection Statistics:")
     print("-" * 40)
     
     for collection_name in ["exercises", "nutrition", "medical"]:
@@ -154,15 +152,15 @@ def test_exercise_specific():
 
 # Test nutrition
 result = retrieve_context("high protein foods")
-print(f"Intent: {result['intent']}")  # Should be "nutrition"
+print(f"Intent: {result['intent']}")  
 
 # Test medical
 result = retrieve_context("asthma exercise guidelines")
-print(f"Intent: {result['intent']}")  # Should be "medical"
+print(f"Intent: {result['intent']}")  
 
 # Test exercise
 result = retrieve_context("walking")
-print(f"Intent: {result['intent']}")  # Should be "exercises"
+print(f"Intent: {result['intent']}")  
 
 if __name__ == "__main__":
     # Run all tests

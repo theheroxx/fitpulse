@@ -22,4 +22,4 @@ sample_foods = [
 for food in sample_foods:
     add_food(*food)
 
-print(f"\n✅ Total foods: {len(get_all_foods())}")
+print(f"\n Total foods: {len(get_all_foods())}")

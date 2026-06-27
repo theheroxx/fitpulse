@@ -25,7 +25,6 @@ class TestRAGWorker(QThread):
             traceback.print_exc()
             self.done.emit(f"Error: {e}")
 
-# MUST have QApplication before QThread
 app = QCoreApplication(sys.argv)
 
 print("Main thread: Starting worker...")

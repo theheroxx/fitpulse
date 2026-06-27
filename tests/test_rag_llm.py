@@ -7,13 +7,10 @@ Run from the project root: python tests/test_rag_llm.py
 import sys
 import os
 
-# Add project root to path (go up from tests/ to project root)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Verify path
 print(f"Project root: {sys.path[0]}")
 
-# Disable telemetry
 os.environ['CHROMA_TELEMETRY'] = 'False'
 os.environ['ANONYMIZED_TELEMETRY'] = 'False'
 
@@ -21,9 +18,7 @@ print("=" * 60)
 print("🔧 RAG + LLM TEST (No UI)")
 print("=" * 60)
 
-# =========================================================
-# Step 1: Initialize RAG
-# =========================================================
+
 print("\n[1] Initializing RAG system...")
 try:
     from rag.rag_system import rag_orchestrator
@@ -34,21 +29,16 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
-# =========================================================
-# Step 2: Load embedding model
-# =========================================================
 print("\n[2] Loading embedding model...")
 try:
     from rag.rag_system import EmbeddingManager
     emb = EmbeddingManager()
     test_emb = emb.encode(["test"])
-    print(f"    ✅ Model loaded. Embedding dim: {len(test_emb[0])}")
+    print(f" Model loaded. Embedding dim: {len(test_emb[0])}")
 except Exception as e:
-    print(f"    ❌ Model load failed: {e}")
+    print(f" Model load failed: {e}")
 
-# =========================================================
-# Step 3: Test RAG retrieval
-# =========================================================
+
 print("\n[3] Testing RAG retrieval...")
 
 test_queries = [
@@ -77,9 +67,7 @@ for query in test_queries:
     except Exception as e:
         print(f"    ❌ Retrieval error: {e}")
 
-# =========================================================
-# Step 4: Test Ollama connection
-# =========================================================
+
 print("\n[4] Testing Ollama connection...")
 try:
     import ollama
@@ -101,9 +89,6 @@ try:
 except Exception as e:
     print(f"    ❌ Ollama error: {e}")
 
-# =========================================================
-# Step 5: Full RAG + LLM pipeline
-# =========================================================
 print("\n[5] Testing FULL RAG + LLM pipeline...")
 
 # Simulate a user profile
