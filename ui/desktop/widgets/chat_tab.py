@@ -1,13 +1,109 @@
 # ui/desktop/widgets/chat_tab.py
+import re
+
 from PySide6.QtWidgets import *
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 from ui.desktop.workers.chat_worker import ChatWorker
 from ui.desktop.workers.rag_worker import RAGWorker
 
-# =========================================================
-# Animated Message Bubble (unchanged)
-# =========================================================
+
+# ─────────────────────────────────────────────────────────────
+# Markdown → HTML (compact spacing)
+# ─────────────────────────────────────────────────────────────
+
+def markdown_to_html(text: str) -> str:
+    """Convert markdown to Qt-friendly HTML with compact spacing."""
+    lines = text.splitlines()
+    out = []
+    i = 0
+    in_list = False
+    list_tag = ""
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        if "|" in line and i + 1 < len(lines):
+            next_line = lines[i + 1].strip()
+            if re.match(r'^[\|\s\-:]+$', next_line) and "-" in next_line:
+                headers = [h.strip() for h in line.strip("|").split("|")]
+                html = '<table border="1" cellpadding="5" style="border-collapse:collapse;border-color:#cbd5e1;margin:4px 0;">'
+                html += '<thead><tr>' + ''.join(f'<th style="background:#f1f5f9;font-weight:600;padding:4px 8px;">{h}</th>' for h in headers) + '</tr></thead>'
+                html += '<tbody>'
+                i += 2
+                while i < len(lines) and "|" in lines[i]:
+                    cells = [c.strip() for c in lines[i].strip("|").split("|")]
+                    html += '<tr>' + ''.join(f'<td style="padding:4px 8px;">{c}</td>' for c in cells) + '</tr>'
+                    i += 1
+                html += '</tbody></table>'
+                out.append(html)
+                continue
+
+        if line.startswith("#"):
+            level = len(re.match(r'^#+', line).group())
+            content = line.lstrip("#").strip()
+            size = {1: "18px", 2: "15px", 3: "13px"}.get(level, "13px")
+            weight = "700" if level <= 2 else "600"
+            out.append(f'<p style="font-size:{size};font-weight:{weight};margin:4px 0;">{content}</p>')
+            i += 1
+            continue
+
+        if line.startswith(("-", "*", "+")):
+            content = line[1:].strip()
+            if not in_list:
+                out.append('<ul style="margin:4px 0;padding-left:20px;">')
+                in_list = True
+                list_tag = "ul"
+            out.append(f'<li style="margin:1px 0;">{content}</li>')
+            i += 1
+            continue
+
+        if re.match(r'^\d+\.\s+', line):
+            content = re.sub(r'^\d+\.\s+', '', line)
+            if not in_list:
+                out.append('<ol style="margin:4px 0;padding-left:20px;">')
+                in_list = True
+                list_tag = "ol"
+            out.append(f'<li style="margin:1px 0;">{content}</li>')
+            i += 1
+            continue
+
+        if re.match(r'^[\-\*\_]{3,}$', line):
+            if in_list:
+                out.append(f"</{list_tag}>")
+                in_list = False
+            out.append('<hr style="border:none;border-top:1px solid #e2e8f0;margin:4px 0;">')
+            i += 1
+            continue
+
+        if not line:
+            if in_list:
+                out.append(f"</{list_tag}>")
+                in_list = False
+            out.append('<br>')
+            i += 1
+            continue
+
+        if in_list:
+            out.append(f"</{list_tag}>")
+            in_list = False
+
+        content = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line)
+        content = re.sub(r'_(.+?)_', r'<i>\1</i>', content)
+        content = re.sub(r'`(.+?)`', r'<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">\1</code>', content)
+        out.append(f'<span style="margin:0;line-height:1.5;">{content}</span>')
+        i += 1
+
+    if in_list:
+        out.append(f"</{list_tag}>")
+
+    return "".join(out)
+
+
+# ─────────────────────────────────────────────────────────────
+# Animated Message Bubble
+# ─────────────────────────────────────────────────────────────
+
 class AnimatedMessage(QWidget):
     def __init__(self, role, content):
         super().__init__()
@@ -28,19 +124,26 @@ class AnimatedMessage(QWidget):
         self.bubble.setMaximumWidth(820)
 
         bubble_layout = QVBoxLayout(self.bubble)
-        bubble_layout.setContentsMargins(18, 14, 18, 14)
+        bubble_layout.setContentsMargins(16, 12, 16, 12)
 
-        self.label = QLabel(content)
+        html_content = markdown_to_html(content)
+        color = "white" if self.role == "user" else "#1e293b"
+        full_html = f'<div style="font-family:Segoe UI,sans-serif;font-size:11pt;color:{color};line-height:1.5;">{html_content}</div>'
+
+        self.label = QLabel(full_html)
         self.label.setWordWrap(True)
-        self.label.setTextFormat(Qt.PlainText)
+        self.label.setTextFormat(Qt.RichText)
         self.label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.label.setFont(QFont("Segoe UI", 11))
-
-        metrics = QFontMetrics(self.label.font())
-        estimated_width = metrics.horizontalAdvance(content[:120]) + 40
-        estimated_width = max(140, min(760, estimated_width))
-        self.label.setMaximumWidth(estimated_width)
         self.label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+
+        if "|" in content and "-" in content:
+            self.label.setMaximumWidth(760)
+        else:
+            metrics = QFontMetrics(self.label.font())
+            max_line = max(content.splitlines(), key=len) if content.splitlines() else content
+            width = min(760, max(140, metrics.horizontalAdvance(max_line) + 60))
+            self.label.setMaximumWidth(width)
 
         bubble_layout.addWidget(self.label)
 
@@ -51,7 +154,7 @@ class AnimatedMessage(QWidget):
                     border-radius: 22px;
                 }
                 QLabel {
-                    background: transparent; color: white; border: none; line-height: 1.5;
+                    background: transparent; color: white; border: none;
                 }
             """)
             outer_layout.addStretch()
@@ -62,7 +165,7 @@ class AnimatedMessage(QWidget):
                     background: white; border: 1px solid #e2e8f0; border-radius: 22px;
                 }
                 QLabel {
-                    background: transparent; color: #1e293b; border: none; line-height: 1.6;
+                    background: transparent; color: #1e293b; border: none;
                 }
             """)
             shadow = QGraphicsDropShadowEffect()
@@ -105,18 +208,19 @@ class AnimatedMessage(QWidget):
         self.anim_group.start()
 
 
-# =========================================================
+# ─────────────────────────────────────────────────────────────
 # Chat Tab
-# =========================================================
+# ─────────────────────────────────────────────────────────────
+
 class ChatTab(QWidget):
     def __init__(self):
         super().__init__()
-        self.chat_model = "gemma3:4b"
         self.messages = []
         self.context = None
         self.worker = None
         self.rag_worker = None
         self.detailed_mode = False
+        self.status_message = None  # reference to the "Retrieving..." message
         self.setup_ui()
 
     def setup_ui(self):
@@ -239,6 +343,7 @@ class ChatTab(QWidget):
         else:
             message = QLabel(content)
             message.setWordWrap(True)
+            message.setTextFormat(Qt.PlainText)
             message.setFont(QFont("Segoe UI", 11))
             message.setStyleSheet("color: #64748b; background: transparent; padding: 8px 16px; font-style: italic;")
             if role == "user":
@@ -247,6 +352,7 @@ class ChatTab(QWidget):
         self.messages.append(wrapper)
         self.chat_layout.addWidget(wrapper)
         QTimer.singleShot(120, self.scroll_to_bottom)
+        return wrapper  # return the wrapper so we can remove it later
 
     def scroll_to_bottom(self):
         scrollbar = self.scroll_area.verticalScrollBar()
@@ -260,6 +366,14 @@ class ChatTab(QWidget):
 
     def set_analysis_context(self, result):
         self.context = result
+
+    def _remove_status_message(self):
+        """Remove the 'Retrieving medical context...' status message."""
+        if self.status_message:
+            # Remove from layout and delete
+            self.chat_layout.removeWidget(self.status_message)
+            self.status_message.deleteLater()
+            self.status_message = None
 
     def send_message(self):
         question = self.input.text().strip()
@@ -276,100 +390,89 @@ class ChatTab(QWidget):
             self.rag_worker.wait(3000)
             self.rag_worker = None
 
+        # Remove any lingering status message
+        self._remove_status_message()
+
         self.input.clear()
         self.send_btn.setEnabled(False)
         self.input.setEnabled(False)
         self.add_message("user", question)
 
-        context_text = ""
-        health = "Unknown"
-        activity = "Unknown"
+        user_data = self.context.get('user_data', {}) if self.context else {}
+        detector_output = self.context.get('detector', {}) if self.context else {}
 
-        if self.context:
-            user_data = self.context.get('user_data', {})
-            ed_score = self.context.get("ED", "N/A")
-            status = self.context.get("detector", {}).get("label", "N/A")
-            age = user_data.get('Age', 'N/A')
-            health = user_data.get('HealthCondition', 'N/A')
-            fitness = user_data.get('FitnessLevel', 'N/A')
-            activity = user_data.get('ActivityType', 'N/A')
-            context_text = f"""
-User Profile: {age} years old, {health}, {fitness} fitness
-Activity: {activity}
-Environmental Risk: {ed_score}/100 ({status})
-"""
-
-        base_prompt = f"""You are an AI fitness coach. {context_text}
-
-User question: {question}
-
-Provide a helpful, concise answer (2-3 sentences). Be practical and safety-focused."""
+        if not user_data:
+            user_data = {"Age": 30, "HealthCondition": "Healthy", "FitnessLevel": "Medium"}
+            detector_output = {"label": "Safe"}
 
         if not self.detailed_mode:
-            self.worker = ChatWorker(base_prompt, self.chat_model)
+            self.worker = ChatWorker(user_data, detector_output, question, detailed_mode=False)
             self.worker.response_ready.connect(self.on_response_received)
             self.worker.error.connect(self.on_error)
             self.worker.start()
             return
 
-        # DETAILED MODE — RAG on QThread
-        self.add_message("assistant", "🔍 Retrieving medical context...", animated=False)
-        self.pending_context_text = context_text
-        self.pending_question = question
-        self.pending_base_prompt = base_prompt
+        # Detailed mode — add status message and start RAG
+        status_wrapper = self.add_message("assistant", "🔍 Retrieving medical context...", animated=False)
+        self.status_message = status_wrapper  # store reference
 
+        self._pending_user_data = user_data
+        self._pending_detector_output = detector_output
+        self._pending_question = question
+        health = user_data.get('HealthCondition', 'Unknown')
+        activity = user_data.get('ActivityType', 'Unknown')
         self.rag_worker = RAGWorker(question, health, activity)
-        self.rag_worker.progress.connect(lambda msg: print(f"[RAG] {msg}"))
         self.rag_worker.context_ready.connect(self.on_rag_complete)
         self.rag_worker.error.connect(self.on_rag_error)
         self.rag_worker.start()
 
     def on_rag_complete(self, rag_context):
-        context_text = self.pending_context_text
-        question = self.pending_question
-        base_prompt = self.pending_base_prompt
+        self._remove_status_message()  # remove the "Retrieving..." message
 
         if self.rag_worker:
             self.rag_worker.quit()
             self.rag_worker.wait(5000)
             self.rag_worker = None
 
-        if rag_context and rag_context.strip():
-            prompt = f"""You are an AI fitness coach using EVIDENCE-BASED MEDICAL CONTEXT.
-
-{context_text}
-
-{rag_context}
-
-User question: {question}
-
-Provide a DETAILED, SCIENTIFIC answer based on the retrieved medical context above. 
-Cite specific information from the context. Be thorough (3-5 sentences)."""
-        else:
-            prompt = base_prompt
-
-        self.worker = ChatWorker(prompt, self.chat_model)
+        self.worker = ChatWorker(
+            user_data=self._pending_user_data,
+            detector_output=self._pending_detector_output,
+            query=self._pending_question,
+            detailed_mode=True,
+            rag_context=rag_context
+        )
         self.worker.response_ready.connect(self.on_response_received)
         self.worker.error.connect(self.on_error)
         self.worker.start()
 
     def on_rag_error(self, error_msg):
-        print(f"RAG error: {error_msg}")
-        base_prompt = self.pending_base_prompt
+        self._remove_status_message()  # remove the "Retrieving..." message
 
+        print(f"RAG error: {error_msg}")
         if self.rag_worker:
             self.rag_worker.quit()
             self.rag_worker.wait(5000)
             self.rag_worker = None
 
-        self.add_message("assistant", f"⚠️ Could not retrieve medical context.\nAnswering with general knowledge.\n", animated=False)
-        self.worker = ChatWorker(base_prompt, self.chat_model)
+        self.add_message("assistant", "⚠️ Could not retrieve medical context. Answering with general knowledge.", animated=False)
+        self.worker = ChatWorker(
+            user_data=self._pending_user_data,
+            detector_output=self._pending_detector_output,
+            query=self._pending_question,
+            detailed_mode=True,
+            rag_context=None
+        )
         self.worker.response_ready.connect(self.on_response_received)
         self.worker.error.connect(self.on_error)
         self.worker.start()
 
     def on_response_received(self, response):
-        self.add_message("assistant", response)
+        if response and response.strip():
+            self.add_message("assistant", response)
+        else:
+            # If empty response, show a fallback
+            self.add_message("assistant", "I'm having trouble generating a response right now. Please try again.")
+
         self.send_btn.setEnabled(True)
         self.input.setEnabled(True)
         self.input.setFocus()
@@ -397,6 +500,7 @@ Cite specific information from the context. Be thorough (3-5 sentences)."""
             self.rag_worker.quit()
             self.rag_worker.wait(3000)
             self.rag_worker = None
+        self._remove_status_message()
         for msg in self.messages:
             msg.deleteLater()
         self.messages.clear()

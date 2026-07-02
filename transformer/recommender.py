@@ -1,124 +1,125 @@
 # transformer/recommender.py
 """
 LLM Recommender for Fitness Safety Advisor
-Uses fine-tuned Qwen3 model via Ollama
-Human-friendly, conversational tone - no technical jargon or ED numbers
+Clean, direct, and human-friendly.
 """
 
 import ollama
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import time
 import traceback
 import threading
 import re
 
-# Initialize Ollama client
 client = ollama.Client(host='http://127.0.0.1:11434')
-
-# Use your fine-tuned model
 MODEL_NAME = "my-fitness-model"
 
 
 class TimeoutError(Exception):
-    """Custom timeout exception"""
     pass
 
 
 class OllamaWithTimeout:
-    """Wrapper for Ollama with timeout support"""
-    
-    def __init__(self, timeout_seconds=30):
+    def __init__(self, timeout_seconds=45):
         self.timeout_seconds = timeout_seconds
         self.response = None
         self.error = None
-    
+
     def _generate(self, model, prompt, options):
-        """Internal generate method"""
         try:
-            self.response = client.generate(
-                model=model,
-                prompt=prompt,
-                options=options
-            )
+            self.response = client.generate(model=model, prompt=prompt, options=options)
         except Exception as e:
             self.error = e
-    
+
     def generate(self, model, prompt, options):
-        """Generate with timeout"""
         thread = threading.Thread(target=self._generate, args=(model, prompt, options))
         thread.daemon = True
         thread.start()
         thread.join(self.timeout_seconds)
-        
         if thread.is_alive():
-            raise TimeoutError(f"Ollama request timed out after {self.timeout_seconds} seconds")
-        
+            raise TimeoutError(f"Timed out after {self.timeout_seconds}s")
         if self.error:
             raise self.error
-        
         return self.response
 
 
-def add_markdown_formatting(text: str) -> str:
-    """
-    Add markdown formatting to plain text LLM response.
-    Converts plain text to formatted markdown for better UI display.
-    """
+def _clean_response(text: str) -> str:
+    """Minimal cleaning: remove image URLs and weird artifacts."""
     if not text:
         return text
-    
-    formatted = text
-    
-    # Bold key terms
-    keywords = ['safety', 'risk', 'danger', 'warning', 'caution', 'safe', 'unsafe', 
-                'moderate', 'extreme', 'critical', 'important', 'health']
-    for keyword in keywords:
-        pattern = rf'\b({keyword})\b'
-        formatted = re.sub(pattern, r'**\1**', formatted, flags=re.IGNORECASE)
-    
-    # Format bullet points
-    lines = formatted.split('\n')
-    formatted_lines = []
+    # Remove image markdown and URLs
+    text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
+    text = re.sub(r'https?://\S+', '', text)
+    # Remove common separator artifacts
+    text = re.sub(r'!-!+', '', text)
+    # If the response starts with reasoning markers, strip that line
+    lines = text.split('\n')
+    if lines and re.match(r'^(so,|let me|maybe|i think|i should|hmm|okay)', lines[0].strip(), re.IGNORECASE):
+        lines = lines[1:]
+    result = '\n'.join(lines).strip()
+    if not result:
+        return "I'd recommend staying active and listening to your body today."
+    # Ensure it ends with punctuation
+    if result[-1] not in '.!?':
+        result += '.'
+    return result
+
+
+def add_markdown_formatting(text: str) -> str:
+    """Light markdown: bold and bullet lists."""
+    if not text:
+        return text
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    lines = text.split('\n')
+    formatted = []
     for line in lines:
-        stripped = line.strip()
-        if stripped and (stripped[0] in ['-', '*', '•']) and len(stripped) > 1:
-            formatted_lines.append(f"• {stripped[1:].strip()}")
+        if line.strip().startswith(('-', '*', '•')):
+            formatted.append('• ' + line.strip()[1:].strip())
         else:
-            formatted_lines.append(line)
-    formatted = '\n'.join(formatted_lines)
-    
-    # Add emojis based on context (human-friendly)
-    if any(word in text.lower() for word in ['danger', 'extreme', 'unsafe', 'avoid', 'dangerous']):
-        formatted = "⚠️ " + formatted
-    elif any(word in text.lower() for word in ['safe', 'good', 'favorable', 'enjoy']):
-        formatted = "✅ " + formatted
-    elif any(word in text.lower() for word in ['moderate', 'caution', 'careful']):
-        formatted = "💡 " + formatted
-    
-    # Format numbered lists
-    formatted = re.sub(r'(\d+)\.\s+', r'\1. ', formatted)
-    
-    # Add line breaks for readability (but not too many)
-    if len(formatted) > 150:
-        formatted = formatted.replace('. ', '.\n\n')
-    
-    return formatted
+            formatted.append(line)
+    return '\n'.join(formatted)
 
 
-def generate_recommendation(user: Dict[str, Any], detector_output: Dict[str, Any]) -> str:
-    """
-    Generate immediate personalized recommendation using Ollama LLM with timeout.
-    Uses fine-tuned Qwen3 model with human-friendly, conversational tone.
-    NEVER mentions ED scores or technical jargon.
-    """
-    
-    print("=" * 60)
-    print("🤖 GENERATE_RECOMMENDATION - STARTED")
-    print(f"   Time: {time.strftime('%H:%M:%S')}")
-    print("=" * 60)
-    
+def generate_schedule(user: Dict[str, Any], plan_type: str = "workout") -> str:
+    """Generate a weekly plan (workout or diet) as a markdown table."""
+    age = user.get('Age', 'N/A')
+    health = user.get('HealthCondition', 'N/A')
+    fitness = user.get('FitnessLevel', 'N/A')
+    columns = "Day | Focus | Exercises (Sets x Reps) | Duration" if plan_type == "workout" else "Day | Breakfast | Lunch | Dinner | Snack"
+    prompt = f"Create a weekly {plan_type} plan for a {age}-year-old with {health} and {fitness} fitness level. Return only a markdown table with columns: {columns}. No extra text."
     try:
-        # Extract user data (no ED numbers!)
+        wrapper = OllamaWithTimeout(45)
+        resp = wrapper.generate(MODEL_NAME, prompt, {
+            'temperature': 0.4,
+            'num_predict': 400,
+            'num_ctx': 1024,
+            'repeat_penalty': 1.1,
+            'stop': ['\n\n\n', 'User:', 'Question:']
+        })
+        result = resp['response'].strip()
+        if '|' in result and 'Day' in result:
+            return result
+        return "I couldn't generate a proper table. Please try again."
+    except Exception as e:
+        print(f"Schedule error: {e}")
+        return "I'm having trouble generating a plan right now."
+
+
+def generate_recommendation(
+    user: Dict[str, Any],
+    detector_output: Dict[str, Any],
+    query: Optional[str] = None
+) -> str:
+    """Give a direct, human-friendly recommendation."""
+    # Plan request?
+    if query:
+        q_lower = query.lower()
+        plan_phrases = ['give me a', 'create a', 'make a', 'generate a', 'i need a']
+        plan_keywords = ['plan', 'schedule', 'routine', 'workout plan', 'meal plan', 'diet plan', 'weekly']
+        if any(p in q_lower for p in plan_phrases) and any(k in q_lower for k in plan_keywords):
+            return generate_schedule(user, 'diet' if 'meal' in q_lower else 'workout')
+
+    try:
         age = user.get('Age', 'N/A')
         health = user.get('HealthCondition', 'N/A')
         fitness = user.get('FitnessLevel', 'N/A')
@@ -126,137 +127,106 @@ def generate_recommendation(user: Dict[str, Any], detector_output: Dict[str, Any
         duration = user.get('DurationMins', 'N/A')
         time_of_day = user.get('TimeOfDay', 'N/A')
         label = detector_output.get('label', 'N/A')
-        
-        print(f"📊 User Data:")
-        print(f"   Age: {age}")
-        print(f"   Health: {health}")
-        print(f"   Fitness: {fitness}")
-        print(f"   Activity: {activity}")
-        print(f"   Duration: {duration}")
-        print(f"   Time: {time_of_day}")
-        print(f"   Risk Label: {label}")
-        
-        # Human-friendly risk context (no numbers!)
+
+        # Simple risk description
         if label == "Safe":
-            risk_context = "The conditions are good for exercise"
-            tone = "encouraging and positive"
+            risk_text = "The conditions are good for exercise."
         elif label == "Moderate":
-            risk_context = "The conditions are okay but you should take some extra care"
-            tone = "cautious but helpful"
+            risk_text = "The conditions are okay, but take some extra care."
         else:
-            risk_context = "The conditions are not great for outdoor exercise today"
-            tone = "concerned and advising caution"
-        
-        print(f"📊 Risk Context: {risk_context}")
-        
-        # Human-friendly prompt - conversational, warm, clear
-        prompt = f"""You are a friendly, approachable fitness advisor. Talk like a helpful friend giving practical advice.
+            risk_text = "The conditions are not ideal for outdoor exercise."
 
-USER PROFILE:
-- {age} years old
-- Health: {health}
-- Fitness level: {fitness}
-- Planning: {activity} for {duration} minutes in the {time_of_day}
-- What's happening: {risk_context}
+        # Direct prompt (like the old version)
+        prompt = f"""
+You are a friendly fitness advisor. Give a short, practical recommendation (2-3 sentences) based on the user's situation.
 
-Your task: Give a short, warm, practical recommendation (2-3 sentences, max 100 words).
+User: {age} years old, {health}, {fitness} fitness.
+Planning: {activity} for {duration} minutes in the {time_of_day}.
+Risk: {risk_text}
 
-STYLE RULES:
-1. Be friendly and conversational - like a caring friend, not a doctor
-2. Use simple, everyday language - no technical terms
-3. NEVER mention any numbers or scores
-4. Give specific, actionable advice
-5. Be encouraging but honest
-
-EXAMPLE: "Hey there! The weather looks fine for a nice walk today. Just remember to take a water bottle and listen to your body - if you feel tired, it's okay to slow down. Have a great workout!"
-
-RECOMMENDATION:"""
-
-        print(f"📝 Prompt sent to model")
-        print("🤖 Calling Ollama...")
-        
-        start_time = time.time()
-        
-        try:
-            wrapper = OllamaWithTimeout(timeout_seconds=30)
-            response = wrapper.generate(
-                model=MODEL_NAME,
-                prompt=prompt,
-                options={
-                    'temperature': 0.8,           # Slightly more creative for friendly tone
-                    'num_predict': 200,
-                    'num_ctx': 2048,
-                    'repeat_penalty': 1.15,
-                    'repeat_last_n': 64,
-                    'stop': ['\n\n\n', 'User:', 'Question:', '---', 'RECOMMENDATION:']
-                }
-            )
-            
-            elapsed = time.time() - start_time
-            print(f"✅ Ollama responded in {elapsed:.2f} seconds")
-            
-            result = response['response'].strip()
-            
-            # Safety trim
-            if len(result) > 800:
-                result = result[:800] + "..."
-            
-            print(f"📝 Response length: {len(result)} characters")
-            print(f"📝 Response preview: {result[:150]}...")
-            
-            if result and len(result) > 10:
-                # Add markdown formatting for display
-                formatted_result = add_markdown_formatting(result)
-                print("✅ Returning formatted recommendation")
-                return formatted_result
-            
-            print("⚠️ Response too short, using fallback")
-            return _get_fallback_recommendation(label, activity)
-            
-        except TimeoutError as te:
-            print(f"⏰ {te}")
-            return _get_fallback_recommendation(label, activity)
-        
+Recommendation:"""
+        wrapper = OllamaWithTimeout(45)
+        response = wrapper.generate(
+            MODEL_NAME,
+            prompt,
+            {
+                'temperature': 0.7,
+                'num_predict': 200,
+                'num_ctx': 2048,
+                'repeat_penalty': 1.15,
+                'stop': ['\n\n\n', 'User:', 'Question:', '---', 'Recommendation:']
+            }
+        )
+        raw = response['response'].strip()
+        cleaned = _clean_response(raw)
+        if len(cleaned) > 800:
+            cleaned = cleaned[:800] + "..."
+        if cleaned and len(cleaned) > 10:
+            return add_markdown_formatting(cleaned)
+        return _fallback(label)
     except Exception as e:
-        print(f"❌ Ollama error: {type(e).__name__}: {e}")
-        traceback.print_exc()
-        return _get_fallback_recommendation(label, activity)
+        print(f"Error: {e}")
+        return _fallback(label)
 
 
-def _get_fallback_recommendation(risk_label, activity):
-    """Human-friendly fallback when Ollama is unavailable"""
-    print("📋 _get_fallback_recommendation called")
-    
-    if risk_label == "Safe":
-        return "✅ **Great conditions for exercise!** 🌤️\n\n• Enjoy your workout today\n• Stay hydrated\n• Listen to your body and have fun!"
-    elif risk_label == "Moderate":
-        return "💡 **Things are okay, but take it easy**\n\n• Consider taking it a bit easier than usual\n• Take more breaks if you need to\n• Stay aware of how you're feeling"
+def _fallback(label):
+    if label == "Safe":
+        return "✅ Great conditions! Enjoy your workout today. Stay hydrated and listen to your body."
+    elif label == "Moderate":
+        return "💡 Moderate risk. Take it a bit easier, use extra breaks, and stay aware of how you feel."
     else:
-        return "⚠️ **Not the best day for outdoor exercise**\n\n• You might want to move your workout indoors today\n• Try a gentle indoor activity instead\n• It's okay to take a rest day too!"
+        return "⚠️ Not the best day for outdoor exercise. Consider moving indoors or doing a gentle activity."
 
 
-def generate_recommendation_with_rag(user: Dict[str, Any], detector_output: Dict[str, Any]) -> str:
-    """
-    Version with RAG - uses medical context but still human-friendly and NEVER mentions ED numbers.
-    """
-    print("🤖 generate_recommendation_with_rag called")
+def generate_recommendation_with_rag(
+    user, 
+    detector_output, 
+    query=None, 
+    rag_context=None
+) -> str:
+    """Use RAG context but keep the recommendation simple and direct."""
     try:
-        from rag.query_builder import get_rag_context, generate_rag_response
-        
-        # Get RAG context (contains medical info, no ED numbers)
-        context = get_rag_context(user, detector_output)
-        
-        # Build human-friendly query - no numbers!
-        user_query = f"""Provide a friendly, practical recommendation for a {user.get('Age')}-year-old with {user.get('HealthCondition')} who wants to do {user.get('ActivityType')}.
-        
-IMPORTANT RULES:
-1. Be friendly and conversational - like a helpful friend
-2. Use simple, everyday language
-3. NEVER mention any numbers or technical scores
-4. Give specific, actionable advice
-5. Be warm and encouraging"""
-        
-        return generate_rag_response(context, user_query)
+        if rag_context:
+            context = rag_context
+        else:
+            from rag.query_builder import get_rag_context
+            context = get_rag_context(user, detector_output)
+        # Plan request?
+        if query and any(k in query.lower() for k in ['plan', 'schedule', 'routine']):
+            return generate_schedule(user, 'diet' if 'meal' in query.lower() else 'workout')
+
+        age = user.get('Age', 'N/A')
+        health = user.get('HealthCondition', 'N/A')
+        fitness = user.get('FitnessLevel', 'N/A')
+        activity = user.get('ActivityType', 'N/A')
+        label = detector_output.get('label', 'N/A')
+
+        # Simple prompt with context
+        prompt = f"""
+You are a friendly fitness advisor. Use the medical context below if relevant, but keep your answer short and practical (2-3 sentences).
+
+Medical context:
+{context[:1000]}
+
+User: {age} years old, {health}, {fitness} fitness.
+Risk level: {label}.
+Activity: {activity}.
+
+Recommendation:"""
+        wrapper = OllamaWithTimeout(45)
+        response = wrapper.generate(
+            MODEL_NAME,
+            prompt,
+            {
+                'temperature': 0.7,
+                'num_predict': 200,
+                'num_ctx': 2048,
+                'repeat_penalty': 1.15,
+                'stop': ['\n\n\n', 'User:', 'Question:', '---', 'Recommendation:']
+            }
+        )
+        cleaned = _clean_response(response['response'].strip())
+        return add_markdown_formatting(cleaned)
     except Exception as e:
-        print(f"❌ RAG failed: {e}")
-        return generate_recommendation(user, detector_output)
+        print(f"RAG error: {e}")
+        return generate_recommendation(user, detector_output, query)

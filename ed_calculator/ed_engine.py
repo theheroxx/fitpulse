@@ -1,107 +1,50 @@
-# ed_calculator/ed_engine.py
-# ============================================================================
-# PHASE 2: MATHEMATICAL MODEL (CORE BRAIN) - FINAL BALANCED VERSION
-# - Realistic pollution weighting (70% pollution, 30% temperature)
-# - Multi‑pollutant synergy (1.1x when >1 pollutant >45)
-# - Wind, UV, humidity modifiers
-# - Heat‑pollution synergy (1.15x when T>28°C and pollution>40)
-# ============================================================================
-
 import pandas as pd
 import numpy as np
 import os
 import warnings
 from typing import Dict, Optional
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import RobustScaler
 
 warnings.filterwarnings("ignore")
 
-
-class ExerciseDangerMathModel:
-
+class UltimateExerciseDangerModel:
     def __init__(
         self,
-        mining_dir: Optional[str] = None,
-        anomaly_dir: Optional[str] = None
+        base_dir: str = r"D:\Data mining",
+        mining_dir: str = r"D:\Data mining\data mining\2- Decision Tree Analysis\decision_tree_results",
+        anomaly_dir: str = r"D:\Data mining\data mining\5- Anomaly Detection\anomaly_results"
     ):
-        if mining_dir is None:
-            mining_dir = r"D:\Data mining\data mining\2- Decision Tree Analysis\decision_tree_results"
-        if anomaly_dir is None:
-            anomaly_dir = r"D:\Data mining\data mining\5- Anomaly Detection\anomaly_results"
-
-        self.params = self._load_parameters(mining_dir, anomaly_dir)
-
-        print("🧠 Exercise Danger Model Ready (Final Balanced Version)")
-        print(f"   • Temperature Danger Threshold: {self.params['temp_danger']}°C")
-        print(f"   • PM2.5 Danger Threshold: {self.params['pm25_danger']} µg/m³")
-        print(f"   • Weights: Temp {self.params['w_temp']*100:.0f}% / Pollution {self.params['w_pollution']*100:.0f}%")
-        print(f"   • Multi-pollutant synergy: ENABLED")
-        print(f"   • Wind/UV modifiers: ENABLED")
+        print("🧠 Initializing Ultimate Hybrid ED Model...")
+        self.base_path = base_dir
+        
+        # 1. Load Parameters from Decision Tree (Step 2) & Anomaly Detection (Step 5)
+        self.params = self._load_dynamic_parameters(mining_dir, anomaly_dir)
+        
+        # 2. Load ML Inference Helpers (KNN / GNN Bias from Code 3)
+        self.cluster_model = None
+        self.bias_map = None  
+        self.sigma_map = None 
+        self.scaler = None
+        self.is_ai_ready = False
+        
+        self._integrate_ml_results()
 
     # =========================================================================
-    # LOAD PARAMETERS
+    # PARAMETER LOADING (FROM CODE 2 & 1)
     # =========================================================================
-
-    def _load_parameters(self, mining_dir: str, anomaly_dir: str) -> Dict:
+    def _load_dynamic_parameters(self, mining_dir: str, anomaly_dir: str) -> Dict:
+        # Default Medical Baselines (Code 1)
         params = {
-            # Temperature thresholds
-            "temp_safe": 10.0,
-            "temp_caution": 24.0,
-            "temp_danger": 30.0,
-
-            # Pollution danger thresholds (WHO + document)
-            "pm25_danger": 55.0,
-            "pm10_danger": 150.0,
-            "co_danger": 1500.0,
-            "o3_danger": 120.0,
-            "no2_danger": 200.0,
-            "so2_danger": 300.0,
-
-            # Sigmoid steepness
-            "sigmoid_k_pm25": 0.20,
-            "sigmoid_k_pm10": 0.08,
-            "sigmoid_k_co": 0.008,
-            "sigmoid_k_o3": 0.10,
-            "sigmoid_k_no2": 0.07,
-            "sigmoid_k_so2": 0.05,
-            "sigmoid_k_temp": 0.4,
-
-            # *** FIXED WEIGHTS: pollution dominates (70/30) ***
-            "w_temp": 0.30,
-            "w_pollution": 0.70,
-
-            # Synergy multipliers
-            "pollution_synergy_threshold": 45,
-            "pollution_synergy_multiplier": 1.1,
-            "heat_pollution_synergy_temp": 28,
-            "heat_pollution_synergy_pol": 40,
-            "heat_pollution_synergy_multiplier": 1.15,
-
-            # Wind modifiers (document)
-            "wind_cold_threshold": 10,
-            "wind_cold_speed": 15,
-            "wind_cold_penalty": 15,
-            "wind_hot_threshold": 30,
-            "wind_hot_benefit": -10,
-            "wind_hot_still_penalty": 10,
-            "wind_hot_still_speed": 5,
-
-            # UV modifier
-            "uv_threshold": 8,
-            "uv_penalty": 7,
-
-            # Humidity modifier
-            "humidity_temp_threshold": 20,
-            "humidity_base": 50,
-            "humidity_factor": 0.3,
-
-            # Clamping
-            "clamp_max_temp": 50.0,
-            "clamp_min_temp": -30.0,
-            "clamp_max_pm25": 500.0,
-            "clamp_min_pm25": 0.0,
+            "temp_safe": 10.0, "temp_caution": 24.0, "temp_danger": 30.0,
+            "pm25_danger": 55.0, "pm10_danger": 150.0,
+            "co_danger": 1500.0, "o3_danger": 120.0, "no2_danger": 200.0, "so2_danger": 300.0,
+            "w_temp": 0.30, "w_pollution": 0.70, # CODE 1 WEIGHTS (Pollution priority)
+            "clamp_max_temp": 50.0, "clamp_max_pm25": 450.0,
+            "humidity_factor": 0.3, "uv_penalty": 7.0
         }
 
-        # Load custom thresholds from data mining (if available)
+        # Load Decision Tree Thresholds (Code 2 Logic)
         try:
             thresh_path = os.path.join(mining_dir, "critical_thresholds.csv")
             if os.path.exists(thresh_path):
@@ -109,261 +52,132 @@ class ExerciseDangerMathModel:
                 temp_row = df[df["feature"] == "temperature_celsius"]
                 if not temp_row.empty:
                     thresholds = sorted([float(x) for x in eval(temp_row.iloc[0]["thresholds"])])
-                    if len(thresholds) >= 2:
-                        params["temp_caution"] = thresholds[0]
-                        params["temp_danger"] = thresholds[1]
-        except Exception:
-            pass
+                    params["temp_caution"], params["temp_danger"] = thresholds[0], thresholds[-1]
+        except Exception: pass
+
+        # Load Anomaly Clamps (Code 2 Logic)
+        try:
+            anom_path = os.path.join(anomaly_dir, "confirmed_anomalies.csv")
+            if os.path.exists(anom_path):
+                df_anom = pd.read_csv(anom_path)
+                if not df_anom.empty and 'temperature' in df_anom.columns:
+                    params["clamp_max_temp"] = float(df_anom[df_anom['temperature'] > 35]['temperature'].min())
+        except Exception: pass
 
         return params
 
     # =========================================================================
-    # SIGMOID UTILITY
+    # ML INTEGRATION (FROM CODE 3)
     # =========================================================================
+    def _integrate_ml_results(self):
+        csv_path = os.path.join(self.base_path, "FINAL_EXERCISE_DANGER_SCORES_R.csv")
+        if os.path.exists(csv_path):
+            try:
+                df = pd.read_csv(csv_path, usecols=['cluster', 'gnn_bias', 'final_danger_score', 
+                                                   'temperature_celsius', 'humidity', 'air_quality_PM2.5'])
+                self.bias_map = df.groupby('cluster')['gnn_bias'].mean().to_dict()
+                self.sigma_map = df.groupby('cluster')['final_danger_score'].std().fillna(3.0).to_dict()
 
+                # Train KNN to map live input to Climate Clusters
+                train_df = df.dropna().sample(min(len(df), 50000), random_state=42)
+                X = train_df[['temperature_celsius', 'humidity', 'air_quality_PM2.5']]
+                self.scaler = RobustScaler().fit(X)
+                self.cluster_model = KNeighborsClassifier(n_neighbors=5).fit(self.scaler.transform(X), train_df['cluster'])
+                self.is_ai_ready = True
+                print("   ✅ GNN Bias & Cluster Logic Integrated.")
+            except Exception as e: print(f"   ⚠️ ML Integration Failed: {e}")
+
+    # =========================================================================
+    # MATH ENGINE (CODE 1 IMPROVED)
+    # =========================================================================
     def _sigmoid(self, x: float, center: float, k: float) -> float:
         return 100 / (1 + np.exp(-k * (x - center)))
 
-    # =========================================================================
-    # MULTI-POLLUTANT SCORE (realistic for exercise)
-    # =========================================================================
-
     def _pollution_score(self, pollutants: Dict) -> float:
         scores = []
-
-        # ----- PM2.5 (primary, with linear scaling above 55) -----
+        # PM2.5 Hybrid (Code 1: Linear above danger threshold)
         pm25 = pollutants.get("pm25", 0)
         if pm25 <= self.params["pm25_danger"]:
             s_pm25 = self._sigmoid(pm25, self.params["pm25_danger"], 0.20)
         else:
-            # Linear from 55→60 up to 300→100
             excess = min(245, pm25 - self.params["pm25_danger"])
-            linear_portion = (excess / 245) * 40   # 40 points to reach 100
-            s_pm25 = min(100, 60 + linear_portion) # start at 60 at 55 µg/m³
+            s_pm25 = min(100, 60 + (excess / 245) * 40)
         scores.append(s_pm25)
 
-        # ----- PM10 -----
-        pm10 = pollutants.get("pm10", 0)
-        if pm10 and pm10 > 0:
-            if pm10 <= self.params["pm10_danger"]:
-                s_pm10 = self._sigmoid(pm10, self.params["pm10_danger"], 0.08)
-            else:
-                excess = min(350, pm10 - self.params["pm10_danger"])
-                linear_portion = (excess / 350) * 30
-                s_pm10 = min(100, 60 + linear_portion)
-            scores.append(s_pm10)
-
-        # ----- Gases (sigmoid only, rarely extreme) -----
-        for pollutant, danger_key, k in [
-            ("co", "co_danger", 0.008),
-            ("o3", "o3_danger", 0.10),
-            ("no2", "no2_danger", 0.07),
-            ("so2", "so2_danger", 0.05)
-        ]:
-            val = pollutants.get(pollutant, 0)
-            if val and val > 0:
-                s = self._sigmoid(val, self.params[danger_key], k)
-                scores.append(s)
-
-        if not scores:
-            return 0.0
+        # Other pollutants (Sigmoids)
+        for pol, key, k in [("pm10","pm10_danger",0.08), ("co","co_danger",0.008), 
+                             ("o3","o3_danger",0.10), ("no2","no2_danger",0.07)]:
+            val = pollutants.get(pol, 0)
+            if val: scores.append(self._sigmoid(val, self.params[key], k))
 
         max_score = max(scores)
-        # Synergy: if more than one pollutant > 45
-        high_count = sum(1 for s in scores if s > 45)
-        if high_count > 1:
-            max_score *= self.params["pollution_synergy_multiplier"]
-
+        # Cocktail effect (Code 2/3)
+        if sum(1 for s in scores if s > 45) > 1: max_score *= 1.1
         return float(np.clip(max_score, 0, 100))
 
-    # =========================================================================
-    # TEMPERATURE SCORE (with humidity interaction)
-    # =========================================================================
-
-    def _temperature_score(self, temperature: float, humidity: Optional[float] = None) -> float:
-        temperature = np.clip(temperature, self.params["clamp_min_temp"], self.params["clamp_max_temp"])
-
-        # Heat stress (above 25°C)
-        if temperature > 25:
-            heat_score = self._sigmoid(temperature, self.params["temp_danger"], self.params["sigmoid_k_temp"])
-        else:
-            heat_score = 0.0
-
-        # Cold stress – starts at 15°C, increases smoothly, reaches 100 at -10°C
-        cold_start = 15.0   # temperature at which cold risk begins
-        if temperature < cold_start:
-            delta = cold_start - temperature
-            # Exponential: gentle start, then steeper (no cliff)
-            cold_score = 100 * (1 - np.exp(-delta / 5))
-            # Alternative linear: cold_score = min(100, delta * 4)   # 4 points per degree
-        else:
-            cold_score = 0.0
-
-        # Combine: take the larger (only one active in normal conditions)
-        temp_base = max(heat_score, cold_score)
-
-        # Humidity penalty (only when warm, >20°C)
-        humidity_penalty = 0.0
-        if humidity is not None and temperature > self.params["humidity_temp_threshold"]:
-            if humidity > self.params["humidity_base"]:
-                humidity_penalty = self.params["humidity_factor"] * (humidity - self.params["humidity_base"])
-
-        total = temp_base + humidity_penalty
-        return float(np.clip(total, 0, 100))
+    def _temperature_score(self, temp: float, humidity: float) -> float:
+        # Heat (Sigmoid)
+        heat = self._sigmoid(temp, self.params["temp_danger"], 0.4) if temp > 25 else 0.0
+        # Cold (Code 1: Exponential - better than sigmoid for cold)
+        cold = 100 * (1 - np.exp(-(15.0 - temp) / 5)) if temp < 15 else 0.0
+        
+        base = max(heat, cold)
+        if temp > 20 and humidity > 50:
+            base += (humidity - 50) * self.params["humidity_factor"]
+        return float(np.clip(base, 0, 100))
 
     # =========================================================================
-    # WIND MODIFIER (document rules)
+    # FINAL PREDICTION PIPELINE
     # =========================================================================
+    def predict(self, inputs: Dict) -> Dict:
+        temp = inputs.get('temp', 20)
+        pm25 = inputs.get('pm25', 10)
+        
+        # 1. Anomaly Kill-Switch (Code 2 Logic)
+        if temp > self.params['clamp_max_temp'] or pm25 > self.params['clamp_max_pm25']:
+            return {"ED": 100.0, "status": "EXTREME DANGER (ANOMALY DETECTED)", "range": "99-100"}
 
-    def _wind_modifier(self, temperature: float, wind_speed: float) -> float:
-        modifier = 0.0
-        if temperature < self.params["wind_cold_threshold"] and wind_speed > self.params["wind_cold_speed"]:
-            modifier += self.params["wind_cold_penalty"]
-        elif temperature > self.params["wind_hot_threshold"]:
-            if wind_speed > self.params["wind_cold_speed"]:
-                modifier += self.params["wind_hot_benefit"]
-            elif wind_speed < self.params["wind_hot_still_speed"]:
-                modifier += self.params["wind_hot_still_penalty"]
-        return modifier
+        # 2. Physics Base (Code 1 Weights: 70% Pollution / 30% Temp)
+        s_pol = self._pollution_score(inputs)
+        s_temp = self._temperature_score(temp, inputs.get('humid', 50))
+        
+        weighted_score = (self.params["w_temp"] * s_temp) + (self.params["w_pollution"] * s_pol)
+        
+        # 3. Modifiers (Wind/UV)
+        mod = 0
+        wind, uv = inputs.get('wind', 10), inputs.get('uv', 3)
+        if temp < 10 and wind > 15: mod += 15
+        elif temp > 30 and wind < 5: mod += 10
+        if uv > 8: mod += self.params["uv_penalty"]
+        
+        final_math = weighted_score + mod
 
-    # =========================================================================
-    # UV MODIFIER
-    # =========================================================================
+        # 4. AI Residual/Bias (Code 3 Logic)
+        gnn_bias, sigma = 0.0, 5.0
+        cluster_id = -1
+        if self.is_ai_ready:
+            in_vec = self.scaler.transform([[temp, inputs.get('humid', 50), pm25]])
+            cluster_id = int(self.cluster_model.predict(in_vec)[0])
+            gnn_bias = self.bias_map.get(cluster_id, 0.0)
+            sigma = self.sigma_map.get(cluster_id, 5.0)
 
-    def _uv_modifier(self, uv_index: float) -> float:
-        return self.params["uv_penalty"] if uv_index > self.params["uv_threshold"] else 0.0
+        # 5. Final Integration
+        total_score = np.clip(final_math + gnn_bias, 0, 100)
+        
+        # Heat-Pollution Synergy
+        if temp > 28 and s_pol > 40: total_score = min(100, total_score * 1.15)
 
-    # =========================================================================
-    # HEAT-POLLUTION SYNERGY
-    # =========================================================================
-
-    def _apply_heat_pollution_synergy(self, score: float, temperature: float, pollution_score: float) -> float:
-        if (temperature > self.params["heat_pollution_synergy_temp"] and
-            pollution_score > self.params["heat_pollution_synergy_pol"]):
-            score *= self.params["heat_pollution_synergy_multiplier"]
-        return min(100, score)
-
-    # =========================================================================
-    # INTERACTION SCORE (for output only)
-    # =========================================================================
-
-    def _interaction_score(self, temp_score: float, pollution_score: float) -> float:
-        return float(np.clip(np.sqrt(temp_score * pollution_score), 0, 100))
-
-    # =========================================================================
-    # MAIN ED CALCULATION
-    # =========================================================================
-
-    def calculate_danger_score(
-        self,
-        PL: float,
-        WD: float,
-        sensitive_population: bool = False,
-        humidity: Optional[float] = None,
-        wind_speed: Optional[float] = None,
-        uv_index: Optional[float] = None,
-        pm10: Optional[float] = None,
-        co: Optional[float] = None,
-        o3: Optional[float] = None,
-        no2: Optional[float] = None,
-        so2: Optional[float] = None
-    ) -> Dict:
-        # Build pollutant dict
-        pollutants = {
-            "pm25": PL,
-            "pm10": pm10,
-            "co": co,
-            "o3": o3,
-            "no2": no2,
-            "so2": so2
-        }
-
-        # Base scores
-        temp_score = self._temperature_score(WD, humidity)
-        pollution_score = self._pollution_score(pollutants)
-
-        # Modifiers
-        wind_mod = self._wind_modifier(WD, wind_speed) if wind_speed is not None else 0.0
-        uv_mod = self._uv_modifier(uv_index) if uv_index is not None else 0.0
-        total_modifiers = wind_mod + uv_mod
-
-        # Sensitive population
-        if sensitive_population:
-            temp_score *= 1.10
-            pollution_score *= 1.15
-
-        temp_score = min(temp_score, 100)
-        pollution_score = min(pollution_score, 100)
-
-        # Weighted combination (70% pollution, 30% temperature)
-        weighted_score = (self.params["w_temp"] * temp_score +
-                          self.params["w_pollution"] * pollution_score)
-
-        # Add modifiers and synergy
-        score = weighted_score + total_modifiers
-        score = self._apply_heat_pollution_synergy(score, WD, pollution_score)
-        score = float(np.clip(score, 0, 100))
-
-        interaction_score = self._interaction_score(temp_score, pollution_score)
-
-        # Risk levels (aligned with Streamlit)
-        if score >= 80:
-            risk_level = "Extreme"
-            status_text = "EXTREME DANGER"
-        elif score >= 65:
-            risk_level = "High"
-            status_text = "HIGH RISK"
-        elif score >= 45:
-            risk_level = "Moderate"
-            status_text = "MODERATE RISK"
-        elif score >= 30:
-            risk_level = "Low"
-            status_text = "MODERATE SAFE"
-        else:
-            risk_level = "Very Low"
-            status_text = "SAFE"
-
-        # Dominant factors
-        dominant_factors = []
-        if pollution_score >= 60:
-            dominant_factors.append("Air Pollution")
-        if temp_score >= 60:
-            dominant_factors.append("Temperature Stress")
-        if interaction_score >= 60:
-            dominant_factors.append("Combined Environmental Stress")
-        if sensitive_population:
-            dominant_factors.append("Sensitive Population")
-        if wind_mod != 0:
-            dominant_factors.append(f"Wind Effect ({wind_mod:+.0f})")
-        if uv_mod > 0:
-            dominant_factors.append("High UV Radiation")
+        # 6. Formatting Result
+        levels = [(80, "EXTREME"), (65, "HIGH RISK"), (45, "MODERATE"), (30, "LOW RISK"), (0, "SAFE")]
+        risk_level = next(lvl for thr, lvl in levels if total_score >= thr)
 
         return {
-            "ED": round(score, 2),
-            "risk_level": risk_level,
-            "status_text": status_text,
-            "temperature_score": round(temp_score, 2),
-            "pollution_score": round(pollution_score, 2),
-            "interaction_score": round(interaction_score, 2),
-            "wind_modifier": round(wind_mod, 2),
-            "uv_modifier": round(uv_mod, 2),
-            "dominant_factors": dominant_factors,
-            "weights_used": {
-                "temperature": self.params["w_temp"],
-                "pollution": self.params["w_pollution"]
-            }
+            "ED": round(total_score, 2),
+            "Risk_Level": risk_level,
+            "Physics_Component": round(final_math, 2),
+            "AI_Bias_Applied": round(gnn_bias, 2),
+            "Confidence_Range": f"{max(0, round(total_score-sigma))} - {min(100, round(total_score+sigma))}",
+            "Cluster": cluster_id,
+            "Dominant_Factors": [k for k, v in {"Heat": s_temp, "Pollution": s_pol} if v > 60]
         }
 
-
-# Backward compatibility alias
-ExerciseDangerPredictor = ExerciseDangerMathModel
-
-
-# Simple wrapper for callers that only pass PL and WD
-def calculate_simple_danger_score(PL: float, WD: float, sensitive_population: bool = False) -> Dict:
-    model = ExerciseDangerMathModel()
-    return model.calculate_danger_score(
-        PL=PL, WD=WD,
-        sensitive_population=sensitive_population,
-        humidity=50, wind_speed=10, uv_index=3
-    )
