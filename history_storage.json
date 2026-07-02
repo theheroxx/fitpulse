@@ -1,59 +1,62 @@
 [
   {
-    "id": "f2aff988-c68a-4501-9a2e-734e5bf5abd8",
+    "id": "7069341e-22e4-46fd-a62b-e84b20797248",
     "type": "analysis",
-    "created_at": "Jun 28, 2026  •  01:19 AM",
-    "status": "SAFE",
-    "subtitle": "Good ED: Low Cardio generally safe",
+    "created_at": "Jul 02, 2026  •  09:27 AM",
+    "status": "MODERATE RISK",
+    "subtitle": "⚠️ Bad environmental quality - high risk for exercise",
     "reasons": [
-      "Good ED: Low Cardio generally safe",
+      "⚠️ Bad environmental quality - high risk for exercise",
       "Low Fitness: Low Cardio recommended",
       "Morning exercise generally safer"
     ],
-    "confidence": 0.9,
-    "score": 0,
-    "ai_recommendation": "Answer: Start with a 5-minute warm-up to prepare your body, then walk or jog at a comfortable pace for 25 minutes, gradually increasing intensity.",
+    "confidence": 0.7,
+    "score": 50,
+    "ai_recommendation": "I recommend doing a light warm-up before your workout, like some gentle stretching or a short walk. Focus on maintaining a steady pace and avoid pushing too hard to prevent injury. Stay hydrated and listen to your body if you feel any discomfort.\nOkay, let's see. The user is 25, healthy but low fitness. They want to do low cardio for 30 minutes in the morning. The risk is okay but need extra care. \n\nFirst, I should mention a warm-up. Maybe dynamic stretches or a brisk walk? That helps prepare the body. Then, emphasize steady pace to avoid overexertion. Since they're low fitness, pushing too hard could be risky. Also, hydration is important. Maybe mention listening to their body and stopping if discomfort occurs. Keep it short, 2-3 sentences. Make sure it's practical and friendly. Let me ch...",
     "experience_emoji": "😊",
     "raw_result": {
-      "ED": 0.17,
+      "ED": 60.31,
       "air_quality": {
-        "co": 200.0,
-        "no2": 25.0,
-        "o3": 25.0,
-        "pm10": 25.0,
-        "pm25": 25.0,
-        "so2": 25.0
+        "co": 130.0,
+        "no2": 22.0,
+        "o3": 58.0,
+        "pm10": 75.0,
+        "pm25": 93.0,
+        "so2": 8.0
       },
       "detailed_risk": null,
       "detector": {
-        "confidence": 0.9,
-        "label": "Safe",
+        "confidence": 0.7,
+        "label": "Moderate",
         "normalized_input": {
           "ActivityType": "Low Cardio",
           "Age": 25,
           "DurationMins": 30,
-          "ED": 0.17,
+          "ED": 60.31,
           "FitnessLevel": "Low",
           "HealthCondition": "Healthy",
           "TimeOfDay": "Morning"
         },
         "reasons": [
-          "Good ED: Low Cardio generally safe",
+          "⚠️ Bad environmental quality - high risk for exercise",
           "Low Fitness: Low Cardio recommended",
           "Morning exercise generally safer"
         ],
-        "score": 0
+        "score": 50
       },
       "ed_math_model": {
-        "dominant_factors": [],
-        "interaction_score": 0.0,
-        "pollution_score": 0.25,
-        "risk_level": "Very Low",
-        "score": 0.17,
-        "temperature_score": 0.0
+        "dominant_factors": [
+          "Air Pollution"
+        ],
+        "interaction_score": 28.09,
+        "pollution_score": 66.2,
+        "risk_level": "High",
+        "score": 60.31,
+        "temperature_score": 11.92
       },
       "ed_recommendations": [
-        "✅ Good conditions for outdoor exercise.",
+        "⚠️ Moderate risk. Limit outdoor exercise to 20-30 minutes.",
+        "💧 Stay hydrated and take frequent breaks.",
         "\n🏋️ Recommended Exercises:",
         "  • {'id': 18, 'name': 'Burpees', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 10, 'calories_per_hour': 450, 'benefits': 'Full body exercise, builds explosive strength', 'precautions': 'Use proper form, modify if needed', 'contraindications': 'Joint issues, Heart condition', 'created_at': '2026-05-10 09:54:27'}",
         "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
@@ -165,7 +168,7 @@
           "type": "Cardio"
         }
       ],
-      "final_recommendation": "Answer: Start with a 5-minute warm-up to prepare your body, then walk or jog at a comfortable pace for 25 minutes, gradually increasing intensity.",
+      "final_recommendation": "I recommend doing a light warm-up before your workout, like some gentle stretching or a short walk. Focus on maintaining a steady pace and avoid pushing too hard to prevent injury. Stay hydrated and listen to your body if you feel any discomfort.\nOkay, let's see. The user is 25, healthy but low fitness. They want to do low cardio for 30 minutes in the morning. The risk is okay but need extra care. \n\nFirst, I should mention a warm-up. Maybe dynamic stretches or a brisk walk? That helps prepare the body. Then, emphasize steady pace to avoid overexertion. Since they're low fitness, pushing too hard could be risky. Also, hydration is important. Maybe mention listening to their body and stopping if discomfort occurs. Keep it short, 2-3 sentences. Make sure it's practical and friendly. Let me ch...",
       "food_recommendations": [
         {
           "allergens": "Tree nuts",
@@ -289,29 +292,348 @@
       "user_data": {
         "ActivityType": "Low Cardio",
         "Age": 25,
-        "CO": 200.0,
+        "CO": 130.0,
         "DurationMins": 30,
         "FitnessLevel": "Low",
         "HealthCondition": "Healthy",
-        "Humidity": 45,
-        "NO2": 25.0,
-        "O3": 25.0,
-        "PM10": 25.0,
-        "PM25": 25.0,
-        "SO2": 25.0,
-        "Temperature": 22,
+        "Humidity": 25,
+        "NO2": 22.0,
+        "O3": 58.0,
+        "PM10": 75.0,
+        "PM25": 93.0,
+        "SO2": 8.0,
+        "Temperature": 30,
         "TimeOfDay": "Morning",
         "UV": 3,
-        "Wind": 10,
-        "city_id": null,
-        "city_name": "📍 Manual Entry",
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
         "sensitive": false
       },
       "weather": {
-        "humid": 45.0,
-        "temp": 22.0,
+        "humid": 25.0,
+        "temp": 30.0,
         "uv": 3.0,
-        "wind": 10
+        "wind": 8
+      }
+    }
+  },
+  {
+    "id": "2bcbad71-9a03-4e16-86d6-fc6d4112bf97",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:27 AM",
+    "status": "SAFE",
+    "subtitle": "Good ED: Low Cardio generally safe",
+    "reasons": [
+      "Good ED: Low Cardio generally safe",
+      "Low Fitness: Low Cardio recommended",
+      "Morning exercise generally safer"
+    ],
+    "confidence": 0.9,
+    "score": 0,
+    "ai_recommendation": "Include dynamic warm-up exercises (e.g., arm circles, leg swings) before starting the workout to prepare your body for physical activity. Focus on low-intensity movements like walking or light jogging to avoid overexertion. Stay hydrated and listen to your body to ensure a safe and effective workout.\nOkay, let me break down the user's situation. They're 25, healthy, but have low fitness. They want to do low cardio in the morning for 30 minutes, and the conditions are good for exercise. \n\nFirst, I need to make sure their plan is safe and effective. Since they're new to exercise, starting with a warm-up is crucial. Dynamic stretches like arm circles and leg swings would help prepare their muscles and joints without causing injury. \n\nNext, the workout itself should be low intensity. Maybe sug...",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 49.42,
+      "air_quality": {
+        "co": 130.0,
+        "no2": 22.0,
+        "o3": 58.0,
+        "pm10": 75.0,
+        "pm25": 93.0,
+        "so2": 8.0
+      },
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.9,
+        "label": "Safe",
+        "normalized_input": {
+          "ActivityType": "Low Cardio",
+          "Age": 25,
+          "DurationMins": 30,
+          "ED": 49.42,
+          "FitnessLevel": "Low",
+          "HealthCondition": "Healthy",
+          "TimeOfDay": "Morning"
+        },
+        "reasons": [
+          "Good ED: Low Cardio generally safe",
+          "Low Fitness: Low Cardio recommended",
+          "Morning exercise generally safer"
+        ],
+        "score": 0
+      },
+      "ed_math_model": {
+        "dominant_factors": [
+          "Air Pollution"
+        ],
+        "interaction_score": 0.0,
+        "pollution_score": 66.2,
+        "risk_level": "Moderate",
+        "score": 49.42,
+        "temperature_score": 0.0
+      },
+      "ed_recommendations": [
+        "ℹ️ Acceptable conditions. Exercise with caution.",
+        "👀 Monitor how you feel during activity.",
+        "\n🏋️ Recommended Exercises:",
+        "  • {'id': 18, 'name': 'Burpees', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 10, 'calories_per_hour': 450, 'benefits': 'Full body exercise, builds explosive strength', 'precautions': 'Use proper form, modify if needed', 'contraindications': 'Joint issues, Heart condition', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 10, 'name': 'Dancing', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 45, 'calories_per_hour': 350, 'benefits': 'Fun cardio, improves coordination', 'precautions': 'Stay hydrated, wear comfortable shoes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 14, 'name': 'Elliptical', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Low impact cardio, easy on joints', 'precautions': 'Maintain posture, adjust resistance', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 7, 'name': 'HIIT', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 15, 'calories_per_hour': 500, 'benefits': 'Efficient calorie burn, improves fitness', 'precautions': 'Warm up properly, take rest periods', 'contraindications': 'Heart condition, Asthma', 'created_at': '2026-05-10 09:54:27'}",
+        "\n🥗 Recommended Foods:",
+        "  • {'id': 7, 'name': 'Almonds', 'category': 'Nuts', 'calories_per_100g': 579.0, 'protein_g': 21.0, 'carbs_g': 22.0, 'fat_g': 50.0, 'fiber_g': 12.0, 'glycemic_index': 0, 'benefits': 'Healthy fats, vitamin E', 'allergens': 'Tree nuts', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 10, 'name': 'Avocado', 'category': 'Fruits', 'calories_per_100g': 160.0, 'protein_g': 2.0, 'carbs_g': 9.0, 'fat_g': 15.0, 'fiber_g': 7.0, 'glycemic_index': 15, 'benefits': 'Healthy fats, potassium', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 4, 'name': 'Broccoli', 'category': 'Vegetables', 'calories_per_100g': 34.0, 'protein_g': 2.8, 'carbs_g': 7.0, 'fat_g': 0.4, 'fiber_g': 2.4, 'glycemic_index': 15, 'benefits': 'Vitamin C, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 6, 'name': 'Brown Rice', 'category': 'Grains', 'calories_per_100g': 111.0, 'protein_g': 2.6, 'carbs_g': 23.0, 'fat_g': 0.9, 'fiber_g': 1.8, 'glycemic_index': 50, 'benefits': 'Complex carbs, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 1, 'name': 'Chicken Breast', 'category': 'Protein', 'calories_per_100g': 165.0, 'protein_g': 31.0, 'carbs_g': 0.0, 'fat_g': 3.6, 'fiber_g': 0.0, 'glycemic_index': 0, 'benefits': 'Lean protein, fast absorption after exercise', 'allergens': 'None', 'created_at': '2026-05-16 08:22:22'}"
+      ],
+      "exercise_recommendations": [
+        {
+          "benefits": "Full body exercise, builds explosive strength",
+          "calories_per_hour": 450,
+          "contraindications": "Joint issues, Heart condition",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 18,
+          "intensity": "High",
+          "name": "Burpees",
+          "precautions": "Use proper form, modify if needed",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Strengthens legs, improves endurance",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 5,
+          "intensity": "Medium",
+          "name": "Cycling",
+          "precautions": "Wear helmet, check brakes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Fun cardio, improves coordination",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 10,
+          "intensity": "Medium",
+          "name": "Dancing",
+          "precautions": "Stay hydrated, wear comfortable shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Low impact cardio, easy on joints",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 14,
+          "intensity": "Medium",
+          "name": "Elliptical",
+          "precautions": "Maintain posture, adjust resistance",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Efficient calorie burn, improves fitness",
+          "calories_per_hour": 500,
+          "contraindications": "Heart condition, Asthma",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 15,
+          "id": 7,
+          "intensity": "High",
+          "name": "HIIT",
+          "precautions": "Warm up properly, take rest periods",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds endurance, connects with nature",
+          "calories_per_hour": 400,
+          "contraindications": "Balance issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 60,
+          "id": 15,
+          "intensity": "Medium",
+          "name": "Hiking",
+          "precautions": "Wear proper footwear, bring water",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Improves coordination, burns calories",
+          "calories_per_hour": 400,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 13,
+          "intensity": "High",
+          "name": "Jump Rope",
+          "precautions": "Use proper surface, wear supportive shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Warm up exercise, improves circulation",
+          "calories_per_hour": 200,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 17,
+          "intensity": "Medium",
+          "name": "Jumping Jacks",
+          "precautions": "Land softly, maintain rhythm",
+          "type": "Cardio"
+        }
+      ],
+      "final_recommendation": "Include dynamic warm-up exercises (e.g., arm circles, leg swings) before starting the workout to prepare your body for physical activity. Focus on low-intensity movements like walking or light jogging to avoid overexertion. Stay hydrated and listen to your body to ensure a safe and effective workout.\nOkay, let me break down the user's situation. They're 25, healthy, but have low fitness. They want to do low cardio in the morning for 30 minutes, and the conditions are good for exercise. \n\nFirst, I need to make sure their plan is safe and effective. Since they're new to exercise, starting with a warm-up is crucial. Dynamic stretches like arm circles and leg swings would help prepare their muscles and joints without causing injury. \n\nNext, the workout itself should be low intensity. Maybe sug...",
+      "food_recommendations": [
+        {
+          "allergens": "Tree nuts",
+          "benefits": "Healthy fats, vitamin E",
+          "calories_per_100g": 579.0,
+          "carbs_g": 22.0,
+          "category": "Nuts",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 50.0,
+          "fiber_g": 12.0,
+          "glycemic_index": 0,
+          "id": 7,
+          "name": "Almonds",
+          "protein_g": 21.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Healthy fats, potassium",
+          "calories_per_100g": 160.0,
+          "carbs_g": 9.0,
+          "category": "Fruits",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 15.0,
+          "fiber_g": 7.0,
+          "glycemic_index": 15,
+          "id": 10,
+          "name": "Avocado",
+          "protein_g": 2.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Vitamin C, fiber",
+          "calories_per_100g": 34.0,
+          "carbs_g": 7.0,
+          "category": "Vegetables",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 15,
+          "id": 4,
+          "name": "Broccoli",
+          "protein_g": 2.8
+        },
+        {
+          "allergens": "None",
+          "benefits": "Complex carbs, fiber",
+          "calories_per_100g": 111.0,
+          "carbs_g": 23.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.9,
+          "fiber_g": 1.8,
+          "glycemic_index": 50,
+          "id": 6,
+          "name": "Brown Rice",
+          "protein_g": 2.6
+        },
+        {
+          "allergens": "None",
+          "benefits": "Lean protein, fast absorption after exercise",
+          "calories_per_100g": 165.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:22:22",
+          "fat_g": 3.6,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 1,
+          "name": "Chicken Breast",
+          "protein_g": 31.0
+        },
+        {
+          "allergens": "Dairy",
+          "benefits": "Probiotics, protein",
+          "calories_per_100g": 100.0,
+          "carbs_g": 6.0,
+          "category": "Dairy",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 0.0,
+          "glycemic_index": 35,
+          "id": 5,
+          "name": "Greek Yogurt",
+          "protein_g": 17.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Heart healthy, fiber",
+          "calories_per_100g": 68.0,
+          "carbs_g": 12.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 1.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 55,
+          "id": 2,
+          "name": "Oatmeal",
+          "protein_g": 2.4
+        },
+        {
+          "allergens": "Fish",
+          "benefits": "Omega-3 fatty acids",
+          "calories_per_100g": 208.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 13.0,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 3,
+          "name": "Salmon",
+          "protein_g": 22.0
+        }
+      ],
+      "rag_context": {
+        "documents": [
+          []
+        ],
+        "error": null
+      },
+      "user_data": {
+        "ActivityType": "Low Cardio",
+        "Age": 25,
+        "CO": 130.0,
+        "DurationMins": 30,
+        "FitnessLevel": "Low",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 22.0,
+        "O3": 58.0,
+        "PM10": 75.0,
+        "PM25": 93.0,
+        "SO2": 8.0,
+        "Temperature": 24,
+        "TimeOfDay": "Morning",
+        "UV": 3,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": false
+      },
+      "weather": {
+        "humid": 25.0,
+        "temp": 24.0,
+        "uv": 3.0,
+        "wind": 8
       }
     }
   },
@@ -1430,6 +1752,322 @@
         }
       ],
       "final_recommendation": "✅ **Great conditions for exercise!** 🌤️\n\n• Enjoy your workout today\n• Stay hydrated\n• Listen to your body and have fun!",
+      "food_recommendations": [
+        {
+          "allergens": "Tree nuts",
+          "benefits": "Healthy fats, vitamin E",
+          "calories_per_100g": 579.0,
+          "carbs_g": 22.0,
+          "category": "Nuts",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 50.0,
+          "fiber_g": 12.0,
+          "glycemic_index": 0,
+          "id": 7,
+          "name": "Almonds",
+          "protein_g": 21.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Healthy fats, potassium",
+          "calories_per_100g": 160.0,
+          "carbs_g": 9.0,
+          "category": "Fruits",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 15.0,
+          "fiber_g": 7.0,
+          "glycemic_index": 15,
+          "id": 10,
+          "name": "Avocado",
+          "protein_g": 2.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Vitamin C, fiber",
+          "calories_per_100g": 34.0,
+          "carbs_g": 7.0,
+          "category": "Vegetables",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 15,
+          "id": 4,
+          "name": "Broccoli",
+          "protein_g": 2.8
+        },
+        {
+          "allergens": "None",
+          "benefits": "Complex carbs, fiber",
+          "calories_per_100g": 111.0,
+          "carbs_g": 23.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.9,
+          "fiber_g": 1.8,
+          "glycemic_index": 50,
+          "id": 6,
+          "name": "Brown Rice",
+          "protein_g": 2.6
+        },
+        {
+          "allergens": "None",
+          "benefits": "Lean protein, fast absorption after exercise",
+          "calories_per_100g": 165.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:22:22",
+          "fat_g": 3.6,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 1,
+          "name": "Chicken Breast",
+          "protein_g": 31.0
+        },
+        {
+          "allergens": "Dairy",
+          "benefits": "Probiotics, protein",
+          "calories_per_100g": 100.0,
+          "carbs_g": 6.0,
+          "category": "Dairy",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 0.0,
+          "glycemic_index": 35,
+          "id": 5,
+          "name": "Greek Yogurt",
+          "protein_g": 17.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Heart healthy, fiber",
+          "calories_per_100g": 68.0,
+          "carbs_g": 12.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 1.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 55,
+          "id": 2,
+          "name": "Oatmeal",
+          "protein_g": 2.4
+        },
+        {
+          "allergens": "Fish",
+          "benefits": "Omega-3 fatty acids",
+          "calories_per_100g": 208.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 13.0,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 3,
+          "name": "Salmon",
+          "protein_g": 22.0
+        }
+      ],
+      "rag_context": {
+        "documents": [
+          []
+        ],
+        "error": null
+      },
+      "user_data": {
+        "ActivityType": "Low Cardio",
+        "Age": 25,
+        "CO": 200.0,
+        "DurationMins": 30,
+        "FitnessLevel": "Low",
+        "HealthCondition": "Healthy",
+        "Humidity": 45,
+        "NO2": 25.0,
+        "O3": 25.0,
+        "PM10": 25.0,
+        "PM25": 25.0,
+        "SO2": 25.0,
+        "Temperature": 22,
+        "TimeOfDay": "Morning",
+        "UV": 3,
+        "Wind": 10,
+        "city_id": null,
+        "city_name": "📍 Manual Entry",
+        "sensitive": false
+      },
+      "weather": {
+        "humid": 45.0,
+        "temp": 22.0,
+        "uv": 3.0,
+        "wind": 10
+      }
+    }
+  },
+  {
+    "id": "f2aff988-c68a-4501-9a2e-734e5bf5abd8",
+    "type": "analysis",
+    "created_at": "Jun 28, 2026  •  01:19 AM",
+    "status": "SAFE",
+    "subtitle": "Good ED: Low Cardio generally safe",
+    "reasons": [
+      "Good ED: Low Cardio generally safe",
+      "Low Fitness: Low Cardio recommended",
+      "Morning exercise generally safer"
+    ],
+    "confidence": 0.9,
+    "score": 0,
+    "ai_recommendation": "Answer: Start with a 5-minute warm-up to prepare your body, then walk or jog at a comfortable pace for 25 minutes, gradually increasing intensity.",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 0.17,
+      "air_quality": {
+        "co": 200.0,
+        "no2": 25.0,
+        "o3": 25.0,
+        "pm10": 25.0,
+        "pm25": 25.0,
+        "so2": 25.0
+      },
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.9,
+        "label": "Safe",
+        "normalized_input": {
+          "ActivityType": "Low Cardio",
+          "Age": 25,
+          "DurationMins": 30,
+          "ED": 0.17,
+          "FitnessLevel": "Low",
+          "HealthCondition": "Healthy",
+          "TimeOfDay": "Morning"
+        },
+        "reasons": [
+          "Good ED: Low Cardio generally safe",
+          "Low Fitness: Low Cardio recommended",
+          "Morning exercise generally safer"
+        ],
+        "score": 0
+      },
+      "ed_math_model": {
+        "dominant_factors": [],
+        "interaction_score": 0.0,
+        "pollution_score": 0.25,
+        "risk_level": "Very Low",
+        "score": 0.17,
+        "temperature_score": 0.0
+      },
+      "ed_recommendations": [
+        "✅ Good conditions for outdoor exercise.",
+        "\n🏋️ Recommended Exercises:",
+        "  • {'id': 18, 'name': 'Burpees', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 10, 'calories_per_hour': 450, 'benefits': 'Full body exercise, builds explosive strength', 'precautions': 'Use proper form, modify if needed', 'contraindications': 'Joint issues, Heart condition', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 10, 'name': 'Dancing', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 45, 'calories_per_hour': 350, 'benefits': 'Fun cardio, improves coordination', 'precautions': 'Stay hydrated, wear comfortable shoes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 14, 'name': 'Elliptical', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Low impact cardio, easy on joints', 'precautions': 'Maintain posture, adjust resistance', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 7, 'name': 'HIIT', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 15, 'calories_per_hour': 500, 'benefits': 'Efficient calorie burn, improves fitness', 'precautions': 'Warm up properly, take rest periods', 'contraindications': 'Heart condition, Asthma', 'created_at': '2026-05-10 09:54:27'}",
+        "\n🥗 Recommended Foods:",
+        "  • {'id': 7, 'name': 'Almonds', 'category': 'Nuts', 'calories_per_100g': 579.0, 'protein_g': 21.0, 'carbs_g': 22.0, 'fat_g': 50.0, 'fiber_g': 12.0, 'glycemic_index': 0, 'benefits': 'Healthy fats, vitamin E', 'allergens': 'Tree nuts', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 10, 'name': 'Avocado', 'category': 'Fruits', 'calories_per_100g': 160.0, 'protein_g': 2.0, 'carbs_g': 9.0, 'fat_g': 15.0, 'fiber_g': 7.0, 'glycemic_index': 15, 'benefits': 'Healthy fats, potassium', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 4, 'name': 'Broccoli', 'category': 'Vegetables', 'calories_per_100g': 34.0, 'protein_g': 2.8, 'carbs_g': 7.0, 'fat_g': 0.4, 'fiber_g': 2.4, 'glycemic_index': 15, 'benefits': 'Vitamin C, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 6, 'name': 'Brown Rice', 'category': 'Grains', 'calories_per_100g': 111.0, 'protein_g': 2.6, 'carbs_g': 23.0, 'fat_g': 0.9, 'fiber_g': 1.8, 'glycemic_index': 50, 'benefits': 'Complex carbs, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 1, 'name': 'Chicken Breast', 'category': 'Protein', 'calories_per_100g': 165.0, 'protein_g': 31.0, 'carbs_g': 0.0, 'fat_g': 3.6, 'fiber_g': 0.0, 'glycemic_index': 0, 'benefits': 'Lean protein, fast absorption after exercise', 'allergens': 'None', 'created_at': '2026-05-16 08:22:22'}"
+      ],
+      "exercise_recommendations": [
+        {
+          "benefits": "Full body exercise, builds explosive strength",
+          "calories_per_hour": 450,
+          "contraindications": "Joint issues, Heart condition",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 18,
+          "intensity": "High",
+          "name": "Burpees",
+          "precautions": "Use proper form, modify if needed",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Strengthens legs, improves endurance",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 5,
+          "intensity": "Medium",
+          "name": "Cycling",
+          "precautions": "Wear helmet, check brakes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Fun cardio, improves coordination",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 10,
+          "intensity": "Medium",
+          "name": "Dancing",
+          "precautions": "Stay hydrated, wear comfortable shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Low impact cardio, easy on joints",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 14,
+          "intensity": "Medium",
+          "name": "Elliptical",
+          "precautions": "Maintain posture, adjust resistance",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Efficient calorie burn, improves fitness",
+          "calories_per_hour": 500,
+          "contraindications": "Heart condition, Asthma",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 15,
+          "id": 7,
+          "intensity": "High",
+          "name": "HIIT",
+          "precautions": "Warm up properly, take rest periods",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds endurance, connects with nature",
+          "calories_per_hour": 400,
+          "contraindications": "Balance issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 60,
+          "id": 15,
+          "intensity": "Medium",
+          "name": "Hiking",
+          "precautions": "Wear proper footwear, bring water",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Improves coordination, burns calories",
+          "calories_per_hour": 400,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 13,
+          "intensity": "High",
+          "name": "Jump Rope",
+          "precautions": "Use proper surface, wear supportive shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Warm up exercise, improves circulation",
+          "calories_per_hour": 200,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 17,
+          "intensity": "Medium",
+          "name": "Jumping Jacks",
+          "precautions": "Land softly, maintain rhythm",
+          "type": "Cardio"
+        }
+      ],
+      "final_recommendation": "Answer: Start with a 5-minute warm-up to prepare your body, then walk or jog at a comfortable pace for 25 minutes, gradually increasing intensity.",
       "food_recommendations": [
         {
           "allergens": "Tree nuts",
@@ -3472,6 +4110,1125 @@
         "temp": 22.0,
         "uv": 3.0,
         "wind": 10
+      }
+    }
+  },
+  {
+    "id": "2152c3e7-b17e-4daa-b06d-46478cf0c7e5",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:16 AM",
+    "status": "UNSAFE",
+    "subtitle": "⚠️ Bad environmental quality - high risk for exercise",
+    "reasons": [
+      "⚠️ Bad environmental quality - high risk for exercise",
+      "Moderate intensity still risky in bad environmental conditions",
+      "Afternoon + bad ED: increased risk"
+    ],
+    "confidence": 0.99,
+    "score": 95,
+    "ai_recommendation": "I need to suggest an alternative. Since outdoor isn't ideal, maybe they should do indoor cardio. What are the options? A treadmill, stationary bike, rowing machine, or even a home gym setup. They mentioned mid cardio, so maybe a moderate intensity. Maybe suggest a treadmill if they have one, or a stationary bike. Also, maybe mention adjusting the workout if they still want to go outside, like choosing a sheltered area or adjusting the intensity. But since the conditions are not ideal, probably better to go indoor.",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 65.69,
+      "air_quality": {
+        "co": 128.0,
+        "no2": 25.0,
+        "o3": 57.0,
+        "pm10": 72.0,
+        "pm25": 96.0,
+        "so2": 8.0
+      },
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.99,
+        "label": "Unsafe",
+        "normalized_input": {
+          "ActivityType": "Mid Cardio",
+          "Age": 25,
+          "DurationMins": 60,
+          "ED": 65.69,
+          "FitnessLevel": "Medium",
+          "HealthCondition": "Healthy",
+          "TimeOfDay": "Afternoon"
+        },
+        "reasons": [
+          "⚠️ Bad environmental quality - high risk for exercise",
+          "Moderate intensity still risky in bad environmental conditions",
+          "Afternoon + bad ED: increased risk"
+        ],
+        "score": 95
+      },
+      "ed_math_model": {
+        "dominant_factors": [
+          "Air Pollution",
+          "Extreme UV",
+          "Sensitive Population"
+        ],
+        "interaction_score": 0.0,
+        "pollution_score": 66.69,
+        "risk_level": "High",
+        "score": 65.69,
+        "temperature_score": 0.0
+      },
+      "ed_recommendations": [
+        "⚠️ Moderate risk. Limit outdoor exercise to 20-30 minutes.",
+        "💧 Stay hydrated and take frequent breaks.",
+        "\n🏋️ Recommended Exercises:",
+        "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 10, 'name': 'Dancing', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 45, 'calories_per_hour': 350, 'benefits': 'Fun cardio, improves coordination', 'precautions': 'Stay hydrated, wear comfortable shoes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 14, 'name': 'Elliptical', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Low impact cardio, easy on joints', 'precautions': 'Maintain posture, adjust resistance', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 15, 'name': 'Hiking', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 60, 'calories_per_hour': 400, 'benefits': 'Builds endurance, connects with nature', 'precautions': 'Wear proper footwear, bring water', 'contraindications': 'Balance issues', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 17, 'name': 'Jumping Jacks', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 5, 'calories_per_hour': 200, 'benefits': 'Warm up exercise, improves circulation', 'precautions': 'Land softly, maintain rhythm', 'contraindications': 'Joint issues', 'created_at': '2026-05-10 09:54:27'}",
+        "\n🥗 Recommended Foods:",
+        "  • {'id': 7, 'name': 'Almonds', 'category': 'Nuts', 'calories_per_100g': 579.0, 'protein_g': 21.0, 'carbs_g': 22.0, 'fat_g': 50.0, 'fiber_g': 12.0, 'glycemic_index': 0, 'benefits': 'Healthy fats, vitamin E', 'allergens': 'Tree nuts', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 10, 'name': 'Avocado', 'category': 'Fruits', 'calories_per_100g': 160.0, 'protein_g': 2.0, 'carbs_g': 9.0, 'fat_g': 15.0, 'fiber_g': 7.0, 'glycemic_index': 15, 'benefits': 'Healthy fats, potassium', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 4, 'name': 'Broccoli', 'category': 'Vegetables', 'calories_per_100g': 34.0, 'protein_g': 2.8, 'carbs_g': 7.0, 'fat_g': 0.4, 'fiber_g': 2.4, 'glycemic_index': 15, 'benefits': 'Vitamin C, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 6, 'name': 'Brown Rice', 'category': 'Grains', 'calories_per_100g': 111.0, 'protein_g': 2.6, 'carbs_g': 23.0, 'fat_g': 0.9, 'fiber_g': 1.8, 'glycemic_index': 50, 'benefits': 'Complex carbs, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 1, 'name': 'Chicken Breast', 'category': 'Protein', 'calories_per_100g': 165.0, 'protein_g': 31.0, 'carbs_g': 0.0, 'fat_g': 3.6, 'fiber_g': 0.0, 'glycemic_index': 0, 'benefits': 'Lean protein, fast absorption after exercise', 'allergens': 'None', 'created_at': '2026-05-16 08:22:22'}"
+      ],
+      "exercise_recommendations": [
+        {
+          "benefits": "Strengthens legs, improves endurance",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 5,
+          "intensity": "Medium",
+          "name": "Cycling",
+          "precautions": "Wear helmet, check brakes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Fun cardio, improves coordination",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 10,
+          "intensity": "Medium",
+          "name": "Dancing",
+          "precautions": "Stay hydrated, wear comfortable shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Low impact cardio, easy on joints",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 14,
+          "intensity": "Medium",
+          "name": "Elliptical",
+          "precautions": "Maintain posture, adjust resistance",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds endurance, connects with nature",
+          "calories_per_hour": 400,
+          "contraindications": "Balance issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 60,
+          "id": 15,
+          "intensity": "Medium",
+          "name": "Hiking",
+          "precautions": "Wear proper footwear, bring water",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Warm up exercise, improves circulation",
+          "calories_per_hour": 200,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 17,
+          "intensity": "Medium",
+          "name": "Jumping Jacks",
+          "precautions": "Land softly, maintain rhythm",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds leg strength, improves balance",
+          "calories_per_hour": 200,
+          "contraindications": "Knee issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 21,
+          "intensity": "Medium",
+          "name": "Lunges",
+          "precautions": "Keep front knee over ankle",
+          "type": "Strength"
+        },
+        {
+          "benefits": "Strengthens core, improves posture",
+          "calories_per_hour": 250,
+          "contraindications": "Back problems",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 8,
+          "intensity": "Medium",
+          "name": "Pilates",
+          "precautions": "Focus on breathing, avoid strain",
+          "type": "Core"
+        },
+        {
+          "benefits": "Strengthens core, improves posture",
+          "calories_per_hour": 150,
+          "contraindications": "Lower back issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 22,
+          "intensity": "Medium",
+          "name": "Planks",
+          "precautions": "Keep body straight, engage abs",
+          "type": "Core"
+        }
+      ],
+      "final_recommendation": "I need to suggest an alternative. Since outdoor isn't ideal, maybe they should do indoor cardio. What are the options? A treadmill, stationary bike, rowing machine, or even a home gym setup. They mentioned mid cardio, so maybe a moderate intensity. Maybe suggest a treadmill if they have one, or a stationary bike. Also, maybe mention adjusting the workout if they still want to go outside, like choosing a sheltered area or adjusting the intensity. But since the conditions are not ideal, probably better to go indoor.",
+      "food_recommendations": [
+        {
+          "allergens": "Tree nuts",
+          "benefits": "Healthy fats, vitamin E",
+          "calories_per_100g": 579.0,
+          "carbs_g": 22.0,
+          "category": "Nuts",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 50.0,
+          "fiber_g": 12.0,
+          "glycemic_index": 0,
+          "id": 7,
+          "name": "Almonds",
+          "protein_g": 21.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Healthy fats, potassium",
+          "calories_per_100g": 160.0,
+          "carbs_g": 9.0,
+          "category": "Fruits",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 15.0,
+          "fiber_g": 7.0,
+          "glycemic_index": 15,
+          "id": 10,
+          "name": "Avocado",
+          "protein_g": 2.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Vitamin C, fiber",
+          "calories_per_100g": 34.0,
+          "carbs_g": 7.0,
+          "category": "Vegetables",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 15,
+          "id": 4,
+          "name": "Broccoli",
+          "protein_g": 2.8
+        },
+        {
+          "allergens": "None",
+          "benefits": "Complex carbs, fiber",
+          "calories_per_100g": 111.0,
+          "carbs_g": 23.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.9,
+          "fiber_g": 1.8,
+          "glycemic_index": 50,
+          "id": 6,
+          "name": "Brown Rice",
+          "protein_g": 2.6
+        },
+        {
+          "allergens": "None",
+          "benefits": "Lean protein, fast absorption after exercise",
+          "calories_per_100g": 165.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:22:22",
+          "fat_g": 3.6,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 1,
+          "name": "Chicken Breast",
+          "protein_g": 31.0
+        },
+        {
+          "allergens": "Dairy",
+          "benefits": "Probiotics, protein",
+          "calories_per_100g": 100.0,
+          "carbs_g": 6.0,
+          "category": "Dairy",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 0.0,
+          "glycemic_index": 35,
+          "id": 5,
+          "name": "Greek Yogurt",
+          "protein_g": 17.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Heart healthy, fiber",
+          "calories_per_100g": 68.0,
+          "carbs_g": 12.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 1.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 55,
+          "id": 2,
+          "name": "Oatmeal",
+          "protein_g": 2.4
+        },
+        {
+          "allergens": "Fish",
+          "benefits": "Omega-3 fatty acids",
+          "calories_per_100g": 208.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 13.0,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 3,
+          "name": "Salmon",
+          "protein_g": 22.0
+        }
+      ],
+      "rag_context": {
+        "documents": [
+          []
+        ],
+        "error": null
+      },
+      "user_data": {
+        "ActivityType": "Mid Cardio",
+        "Age": 25,
+        "CO": 128.0,
+        "DurationMins": 60,
+        "FitnessLevel": "Medium",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 25.0,
+        "O3": 57.0,
+        "PM10": 72.0,
+        "PM25": 96.0,
+        "SO2": 8.0,
+        "Temperature": 24,
+        "TimeOfDay": "Afternoon",
+        "UV": 10,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": true
+      },
+      "weather": {
+        "humid": 25.0,
+        "temp": 24.0,
+        "uv": 10.0,
+        "wind": 8
+      }
+    }
+  },
+  {
+    "id": "e9fda8bc-6f2d-41a4-aa23-89291c17cf3e",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:14 AM",
+    "status": "UNSAFE",
+    "subtitle": "⚠️ Bad environmental quality - high risk for exercise",
+    "reasons": [
+      "⚠️ Bad environmental quality - high risk for exercise",
+      "Moderate intensity still risky in bad environmental conditions",
+      "Afternoon + bad ED: increased risk"
+    ],
+    "confidence": 0.99,
+    "score": 95,
+    "ai_recommendation": "You can do mid-cardio on a stationary bike or treadmill in your home. Keep your intensity around 60-70% of your max heart rate to maintain a steady pace without overexertion.\n\nOkay, let's see. The user is 25, healthy, medium fitness. They want to do mid-cardio for 60 minutes in the afternoon, but the outdoor conditions aren't ideal. So, they probably can't go outside. I need to suggest an indoor alternative.\n\nMid-cardio is moderate intensity, so the recommendation should be something that keeps them in that range. Stationary bike or treadmill are good options because they're indoor and can simulate outdoor exercise. Also, they mentioned the conditions aren't ideal, so maybe weather or temperature is a factor. Maybe they don't want to be outside in bad weather. \n\nThey need to maintain a ste...",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 65.67,
+      "air_quality": {
+        "co": 128.0,
+        "no2": 25.0,
+        "o3": 57.0,
+        "pm10": 72.0,
+        "pm25": 96.0,
+        "so2": 8.0
+      },
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.99,
+        "label": "Unsafe",
+        "normalized_input": {
+          "ActivityType": "Mid Cardio",
+          "Age": 25,
+          "DurationMins": 60,
+          "ED": 65.67,
+          "FitnessLevel": "Medium",
+          "HealthCondition": "Healthy",
+          "TimeOfDay": "Afternoon"
+        },
+        "reasons": [
+          "⚠️ Bad environmental quality - high risk for exercise",
+          "Moderate intensity still risky in bad environmental conditions",
+          "Afternoon + bad ED: increased risk"
+        ],
+        "score": 95
+      },
+      "ed_math_model": {
+        "dominant_factors": [
+          "Air Pollution",
+          "Extreme UV"
+        ],
+        "interaction_score": 39.29,
+        "pollution_score": 66.69,
+        "risk_level": "High",
+        "score": 65.67,
+        "temperature_score": 23.15
+      },
+      "ed_recommendations": [
+        "⚠️ Moderate risk. Limit outdoor exercise to 20-30 minutes.",
+        "💧 Stay hydrated and take frequent breaks.",
+        "🥵 High temperature! Exercise during cooler hours (morning/evening).",
+        "\n🏋️ Recommended Exercises:",
+        "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 10, 'name': 'Dancing', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 45, 'calories_per_hour': 350, 'benefits': 'Fun cardio, improves coordination', 'precautions': 'Stay hydrated, wear comfortable shoes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 14, 'name': 'Elliptical', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Low impact cardio, easy on joints', 'precautions': 'Maintain posture, adjust resistance', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 15, 'name': 'Hiking', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 60, 'calories_per_hour': 400, 'benefits': 'Builds endurance, connects with nature', 'precautions': 'Wear proper footwear, bring water', 'contraindications': 'Balance issues', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 17, 'name': 'Jumping Jacks', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 5, 'calories_per_hour': 200, 'benefits': 'Warm up exercise, improves circulation', 'precautions': 'Land softly, maintain rhythm', 'contraindications': 'Joint issues', 'created_at': '2026-05-10 09:54:27'}",
+        "\n🥗 Recommended Foods:",
+        "  • {'id': 7, 'name': 'Almonds', 'category': 'Nuts', 'calories_per_100g': 579.0, 'protein_g': 21.0, 'carbs_g': 22.0, 'fat_g': 50.0, 'fiber_g': 12.0, 'glycemic_index': 0, 'benefits': 'Healthy fats, vitamin E', 'allergens': 'Tree nuts', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 10, 'name': 'Avocado', 'category': 'Fruits', 'calories_per_100g': 160.0, 'protein_g': 2.0, 'carbs_g': 9.0, 'fat_g': 15.0, 'fiber_g': 7.0, 'glycemic_index': 15, 'benefits': 'Healthy fats, potassium', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 4, 'name': 'Broccoli', 'category': 'Vegetables', 'calories_per_100g': 34.0, 'protein_g': 2.8, 'carbs_g': 7.0, 'fat_g': 0.4, 'fiber_g': 2.4, 'glycemic_index': 15, 'benefits': 'Vitamin C, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 6, 'name': 'Brown Rice', 'category': 'Grains', 'calories_per_100g': 111.0, 'protein_g': 2.6, 'carbs_g': 23.0, 'fat_g': 0.9, 'fiber_g': 1.8, 'glycemic_index': 50, 'benefits': 'Complex carbs, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 1, 'name': 'Chicken Breast', 'category': 'Protein', 'calories_per_100g': 165.0, 'protein_g': 31.0, 'carbs_g': 0.0, 'fat_g': 3.6, 'fiber_g': 0.0, 'glycemic_index': 0, 'benefits': 'Lean protein, fast absorption after exercise', 'allergens': 'None', 'created_at': '2026-05-16 08:22:22'}"
+      ],
+      "exercise_recommendations": [
+        {
+          "benefits": "Strengthens legs, improves endurance",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 5,
+          "intensity": "Medium",
+          "name": "Cycling",
+          "precautions": "Wear helmet, check brakes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Fun cardio, improves coordination",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 10,
+          "intensity": "Medium",
+          "name": "Dancing",
+          "precautions": "Stay hydrated, wear comfortable shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Low impact cardio, easy on joints",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 14,
+          "intensity": "Medium",
+          "name": "Elliptical",
+          "precautions": "Maintain posture, adjust resistance",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds endurance, connects with nature",
+          "calories_per_hour": 400,
+          "contraindications": "Balance issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 60,
+          "id": 15,
+          "intensity": "Medium",
+          "name": "Hiking",
+          "precautions": "Wear proper footwear, bring water",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Warm up exercise, improves circulation",
+          "calories_per_hour": 200,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 17,
+          "intensity": "Medium",
+          "name": "Jumping Jacks",
+          "precautions": "Land softly, maintain rhythm",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds leg strength, improves balance",
+          "calories_per_hour": 200,
+          "contraindications": "Knee issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 21,
+          "intensity": "Medium",
+          "name": "Lunges",
+          "precautions": "Keep front knee over ankle",
+          "type": "Strength"
+        },
+        {
+          "benefits": "Strengthens core, improves posture",
+          "calories_per_hour": 250,
+          "contraindications": "Back problems",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 8,
+          "intensity": "Medium",
+          "name": "Pilates",
+          "precautions": "Focus on breathing, avoid strain",
+          "type": "Core"
+        },
+        {
+          "benefits": "Strengthens core, improves posture",
+          "calories_per_hour": 150,
+          "contraindications": "Lower back issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 22,
+          "intensity": "Medium",
+          "name": "Planks",
+          "precautions": "Keep body straight, engage abs",
+          "type": "Core"
+        }
+      ],
+      "final_recommendation": "You can do mid-cardio on a stationary bike or treadmill in your home. Keep your intensity around 60-70% of your max heart rate to maintain a steady pace without overexertion.\n\nOkay, let's see. The user is 25, healthy, medium fitness. They want to do mid-cardio for 60 minutes in the afternoon, but the outdoor conditions aren't ideal. So, they probably can't go outside. I need to suggest an indoor alternative.\n\nMid-cardio is moderate intensity, so the recommendation should be something that keeps them in that range. Stationary bike or treadmill are good options because they're indoor and can simulate outdoor exercise. Also, they mentioned the conditions aren't ideal, so maybe weather or temperature is a factor. Maybe they don't want to be outside in bad weather. \n\nThey need to maintain a ste...",
+      "food_recommendations": [
+        {
+          "allergens": "Tree nuts",
+          "benefits": "Healthy fats, vitamin E",
+          "calories_per_100g": 579.0,
+          "carbs_g": 22.0,
+          "category": "Nuts",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 50.0,
+          "fiber_g": 12.0,
+          "glycemic_index": 0,
+          "id": 7,
+          "name": "Almonds",
+          "protein_g": 21.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Healthy fats, potassium",
+          "calories_per_100g": 160.0,
+          "carbs_g": 9.0,
+          "category": "Fruits",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 15.0,
+          "fiber_g": 7.0,
+          "glycemic_index": 15,
+          "id": 10,
+          "name": "Avocado",
+          "protein_g": 2.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Vitamin C, fiber",
+          "calories_per_100g": 34.0,
+          "carbs_g": 7.0,
+          "category": "Vegetables",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 15,
+          "id": 4,
+          "name": "Broccoli",
+          "protein_g": 2.8
+        },
+        {
+          "allergens": "None",
+          "benefits": "Complex carbs, fiber",
+          "calories_per_100g": 111.0,
+          "carbs_g": 23.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.9,
+          "fiber_g": 1.8,
+          "glycemic_index": 50,
+          "id": 6,
+          "name": "Brown Rice",
+          "protein_g": 2.6
+        },
+        {
+          "allergens": "None",
+          "benefits": "Lean protein, fast absorption after exercise",
+          "calories_per_100g": 165.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:22:22",
+          "fat_g": 3.6,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 1,
+          "name": "Chicken Breast",
+          "protein_g": 31.0
+        },
+        {
+          "allergens": "Dairy",
+          "benefits": "Probiotics, protein",
+          "calories_per_100g": 100.0,
+          "carbs_g": 6.0,
+          "category": "Dairy",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 0.0,
+          "glycemic_index": 35,
+          "id": 5,
+          "name": "Greek Yogurt",
+          "protein_g": 17.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Heart healthy, fiber",
+          "calories_per_100g": 68.0,
+          "carbs_g": 12.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 1.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 55,
+          "id": 2,
+          "name": "Oatmeal",
+          "protein_g": 2.4
+        },
+        {
+          "allergens": "Fish",
+          "benefits": "Omega-3 fatty acids",
+          "calories_per_100g": 208.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 13.0,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 3,
+          "name": "Salmon",
+          "protein_g": 22.0
+        }
+      ],
+      "rag_context": {
+        "documents": [
+          []
+        ],
+        "error": null
+      },
+      "user_data": {
+        "ActivityType": "Mid Cardio",
+        "Age": 25,
+        "CO": 128.0,
+        "DurationMins": 60,
+        "FitnessLevel": "Medium",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 25.0,
+        "O3": 57.0,
+        "PM10": 72.0,
+        "PM25": 96.0,
+        "SO2": 8.0,
+        "Temperature": 32,
+        "TimeOfDay": "Afternoon",
+        "UV": 10,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": false
+      },
+      "weather": {
+        "humid": 25.0,
+        "temp": 32.0,
+        "uv": 10.0,
+        "wind": 8
+      }
+    }
+  },
+  {
+    "id": "a86965d3-5965-4ede-af01-b5d63a7915ac",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:14 AM",
+    "status": "SAFE",
+    "subtitle": "Good ED: 60 min Mid Cardio safe for all Healthy (rule 4)",
+    "reasons": [
+      "Good ED: 60 min Mid Cardio safe for all Healthy (rule 4)"
+    ],
+    "confidence": 0.9,
+    "score": 0,
+    "ai_recommendation": "Focus on steady-state cardio with moderate intensity. Try a mix of running, cycling, or swimming to keep things interesting. Stay hydrated and monitor your heart rate to ensure you're working within a safe range.\nOkay, let's see. The user is 25, healthy, medium fitness. They want to do mid cardio for 60 minutes in the afternoon. The conditions are good for exercise. So, I need to give a short, practical recommendation.\n\nFirst, mid cardio usually means moderate intensity. So steady-state cardio is a good approach. They mentioned 60 minutes, so maybe suggest a mix of activities to keep it engaging. Running, cycling, swimming are good options. Also, hydration is important. Monitoring heart rate to stay safe. Maybe mention a target heart rate range? But the user might not need specifics. Keep ...",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 20.87,
+      "air_quality": {
+        "co": 128.0,
+        "no2": 25.0,
+        "o3": 57.0,
+        "pm10": 72.0,
+        "pm25": 46.0,
+        "so2": 8.0
+      },
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.9,
+        "label": "Safe",
+        "normalized_input": {
+          "ActivityType": "Mid Cardio",
+          "Age": 25,
+          "DurationMins": 60,
+          "ED": 20.87,
+          "FitnessLevel": "Medium",
+          "HealthCondition": "Healthy",
+          "TimeOfDay": "Afternoon"
+        },
+        "reasons": [
+          "Good ED: 60 min Mid Cardio safe for all Healthy (rule 4)"
+        ],
+        "score": 0
+      },
+      "ed_math_model": {
+        "dominant_factors": [
+          "Extreme UV"
+        ],
+        "interaction_score": 18.12,
+        "pollution_score": 14.19,
+        "risk_level": "Low",
+        "score": 20.87,
+        "temperature_score": 23.15
+      },
+      "ed_recommendations": [
+        "✅ Good conditions for outdoor exercise.",
+        "🥵 High temperature! Exercise during cooler hours (morning/evening).",
+        "\n🏋️ Recommended Exercises:",
+        "  • {'id': 18, 'name': 'Burpees', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 10, 'calories_per_hour': 450, 'benefits': 'Full body exercise, builds explosive strength', 'precautions': 'Use proper form, modify if needed', 'contraindications': 'Joint issues, Heart condition', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 10, 'name': 'Dancing', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 45, 'calories_per_hour': 350, 'benefits': 'Fun cardio, improves coordination', 'precautions': 'Stay hydrated, wear comfortable shoes', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 14, 'name': 'Elliptical', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Low impact cardio, easy on joints', 'precautions': 'Maintain posture, adjust resistance', 'contraindications': '', 'created_at': '2026-05-10 09:54:27'}",
+        "  • {'id': 7, 'name': 'HIIT', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 15, 'calories_per_hour': 500, 'benefits': 'Efficient calorie burn, improves fitness', 'precautions': 'Warm up properly, take rest periods', 'contraindications': 'Heart condition, Asthma', 'created_at': '2026-05-10 09:54:27'}",
+        "\n🥗 Recommended Foods:",
+        "  • {'id': 7, 'name': 'Almonds', 'category': 'Nuts', 'calories_per_100g': 579.0, 'protein_g': 21.0, 'carbs_g': 22.0, 'fat_g': 50.0, 'fiber_g': 12.0, 'glycemic_index': 0, 'benefits': 'Healthy fats, vitamin E', 'allergens': 'Tree nuts', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 10, 'name': 'Avocado', 'category': 'Fruits', 'calories_per_100g': 160.0, 'protein_g': 2.0, 'carbs_g': 9.0, 'fat_g': 15.0, 'fiber_g': 7.0, 'glycemic_index': 15, 'benefits': 'Healthy fats, potassium', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 4, 'name': 'Broccoli', 'category': 'Vegetables', 'calories_per_100g': 34.0, 'protein_g': 2.8, 'carbs_g': 7.0, 'fat_g': 0.4, 'fiber_g': 2.4, 'glycemic_index': 15, 'benefits': 'Vitamin C, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 6, 'name': 'Brown Rice', 'category': 'Grains', 'calories_per_100g': 111.0, 'protein_g': 2.6, 'carbs_g': 23.0, 'fat_g': 0.9, 'fiber_g': 1.8, 'glycemic_index': 50, 'benefits': 'Complex carbs, fiber', 'allergens': 'None', 'created_at': '2026-05-16 08:37:51'}",
+        "  • {'id': 1, 'name': 'Chicken Breast', 'category': 'Protein', 'calories_per_100g': 165.0, 'protein_g': 31.0, 'carbs_g': 0.0, 'fat_g': 3.6, 'fiber_g': 0.0, 'glycemic_index': 0, 'benefits': 'Lean protein, fast absorption after exercise', 'allergens': 'None', 'created_at': '2026-05-16 08:22:22'}"
+      ],
+      "exercise_recommendations": [
+        {
+          "benefits": "Full body exercise, builds explosive strength",
+          "calories_per_hour": 450,
+          "contraindications": "Joint issues, Heart condition",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 18,
+          "intensity": "High",
+          "name": "Burpees",
+          "precautions": "Use proper form, modify if needed",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Strengthens legs, improves endurance",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 5,
+          "intensity": "Medium",
+          "name": "Cycling",
+          "precautions": "Wear helmet, check brakes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Fun cardio, improves coordination",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 10,
+          "intensity": "Medium",
+          "name": "Dancing",
+          "precautions": "Stay hydrated, wear comfortable shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Low impact cardio, easy on joints",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 14,
+          "intensity": "Medium",
+          "name": "Elliptical",
+          "precautions": "Maintain posture, adjust resistance",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Efficient calorie burn, improves fitness",
+          "calories_per_hour": 500,
+          "contraindications": "Heart condition, Asthma",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 15,
+          "id": 7,
+          "intensity": "High",
+          "name": "HIIT",
+          "precautions": "Warm up properly, take rest periods",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds endurance, connects with nature",
+          "calories_per_hour": 400,
+          "contraindications": "Balance issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 60,
+          "id": 15,
+          "intensity": "Medium",
+          "name": "Hiking",
+          "precautions": "Wear proper footwear, bring water",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Improves coordination, burns calories",
+          "calories_per_hour": 400,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 13,
+          "intensity": "High",
+          "name": "Jump Rope",
+          "precautions": "Use proper surface, wear supportive shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Warm up exercise, improves circulation",
+          "calories_per_hour": 200,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 17,
+          "intensity": "Medium",
+          "name": "Jumping Jacks",
+          "precautions": "Land softly, maintain rhythm",
+          "type": "Cardio"
+        }
+      ],
+      "final_recommendation": "Focus on steady-state cardio with moderate intensity. Try a mix of running, cycling, or swimming to keep things interesting. Stay hydrated and monitor your heart rate to ensure you're working within a safe range.\nOkay, let's see. The user is 25, healthy, medium fitness. They want to do mid cardio for 60 minutes in the afternoon. The conditions are good for exercise. So, I need to give a short, practical recommendation.\n\nFirst, mid cardio usually means moderate intensity. So steady-state cardio is a good approach. They mentioned 60 minutes, so maybe suggest a mix of activities to keep it engaging. Running, cycling, swimming are good options. Also, hydration is important. Monitoring heart rate to stay safe. Maybe mention a target heart rate range? But the user might not need specifics. Keep ...",
+      "food_recommendations": [
+        {
+          "allergens": "Tree nuts",
+          "benefits": "Healthy fats, vitamin E",
+          "calories_per_100g": 579.0,
+          "carbs_g": 22.0,
+          "category": "Nuts",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 50.0,
+          "fiber_g": 12.0,
+          "glycemic_index": 0,
+          "id": 7,
+          "name": "Almonds",
+          "protein_g": 21.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Healthy fats, potassium",
+          "calories_per_100g": 160.0,
+          "carbs_g": 9.0,
+          "category": "Fruits",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 15.0,
+          "fiber_g": 7.0,
+          "glycemic_index": 15,
+          "id": 10,
+          "name": "Avocado",
+          "protein_g": 2.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Vitamin C, fiber",
+          "calories_per_100g": 34.0,
+          "carbs_g": 7.0,
+          "category": "Vegetables",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 15,
+          "id": 4,
+          "name": "Broccoli",
+          "protein_g": 2.8
+        },
+        {
+          "allergens": "None",
+          "benefits": "Complex carbs, fiber",
+          "calories_per_100g": 111.0,
+          "carbs_g": 23.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.9,
+          "fiber_g": 1.8,
+          "glycemic_index": 50,
+          "id": 6,
+          "name": "Brown Rice",
+          "protein_g": 2.6
+        },
+        {
+          "allergens": "None",
+          "benefits": "Lean protein, fast absorption after exercise",
+          "calories_per_100g": 165.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:22:22",
+          "fat_g": 3.6,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 1,
+          "name": "Chicken Breast",
+          "protein_g": 31.0
+        },
+        {
+          "allergens": "Dairy",
+          "benefits": "Probiotics, protein",
+          "calories_per_100g": 100.0,
+          "carbs_g": 6.0,
+          "category": "Dairy",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 0.0,
+          "glycemic_index": 35,
+          "id": 5,
+          "name": "Greek Yogurt",
+          "protein_g": 17.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Heart healthy, fiber",
+          "calories_per_100g": 68.0,
+          "carbs_g": 12.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 1.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 55,
+          "id": 2,
+          "name": "Oatmeal",
+          "protein_g": 2.4
+        },
+        {
+          "allergens": "Fish",
+          "benefits": "Omega-3 fatty acids",
+          "calories_per_100g": 208.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 13.0,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 3,
+          "name": "Salmon",
+          "protein_g": 22.0
+        }
+      ],
+      "rag_context": {
+        "documents": [
+          []
+        ],
+        "error": null
+      },
+      "user_data": {
+        "ActivityType": "Mid Cardio",
+        "Age": 25,
+        "CO": 128.0,
+        "DurationMins": 60,
+        "FitnessLevel": "Medium",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 25.0,
+        "O3": 57.0,
+        "PM10": 72.0,
+        "PM25": 46.0,
+        "SO2": 8.0,
+        "Temperature": 32,
+        "TimeOfDay": "Afternoon",
+        "UV": 10,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": false
+      },
+      "weather": {
+        "humid": 25.0,
+        "temp": 32.0,
+        "uv": 10.0,
+        "wind": 8
+      }
+    }
+  },
+  {
+    "id": "91410c39-cd38-479b-b58a-96499e0f4fc2",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:12 AM",
+    "status": "MODERATE RISK",
+    "subtitle": "Analysis error occurred",
+    "reasons": [
+      "Analysis error occurred"
+    ],
+    "confidence": 0.7,
+    "score": 50,
+    "ai_recommendation": "Analysis encountered an error. Please check your inputs and try again.",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 50,
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.7,
+        "label": "Moderate",
+        "reasons": [
+          "Analysis error occurred"
+        ],
+        "score": 50
+      },
+      "ed_recommendations": [
+        "Please try again",
+        "Check your input values"
+      ],
+      "error": "Worker error: 'interaction_score'",
+      "final_recommendation": "Analysis encountered an error. Please check your inputs and try again.",
+      "rag_context": {},
+      "user_data": {
+        "ActivityType": "Low Cardio",
+        "Age": 25,
+        "CO": 130.0,
+        "DurationMins": 30,
+        "FitnessLevel": "Low",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 25.0,
+        "O3": 60.0,
+        "PM10": 75.0,
+        "PM25": 50.0,
+        "SO2": 8.0,
+        "Temperature": 32,
+        "TimeOfDay": "Morning",
+        "UV": 10,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": false
+      }
+    }
+  },
+  {
+    "id": "bd4d949c-a9d6-48da-8e63-5b9b1c73a228",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:10 AM",
+    "status": "MODERATE RISK",
+    "subtitle": "Analysis error occurred",
+    "reasons": [
+      "Analysis error occurred"
+    ],
+    "confidence": 0.7,
+    "score": 50,
+    "ai_recommendation": "Analysis encountered an error. Please check your inputs and try again.",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 50,
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.7,
+        "label": "Moderate",
+        "reasons": [
+          "Analysis error occurred"
+        ],
+        "score": 50
+      },
+      "ed_recommendations": [
+        "Please try again",
+        "Check your input values"
+      ],
+      "error": "Worker error: 'dominant_factors'",
+      "final_recommendation": "Analysis encountered an error. Please check your inputs and try again.",
+      "rag_context": {},
+      "user_data": {
+        "ActivityType": "Mid Cardio",
+        "Age": 25,
+        "CO": 130.0,
+        "DurationMins": 60,
+        "FitnessLevel": "Medium",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 25.0,
+        "O3": 57.0,
+        "PM10": 71.0,
+        "PM25": 46.0,
+        "SO2": 6.0,
+        "Temperature": 32,
+        "TimeOfDay": "Afternoon",
+        "UV": 10,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": false
+      }
+    }
+  },
+  {
+    "id": "29800ddd-6b0e-4e6b-b54c-ebf19755d8e8",
+    "type": "analysis",
+    "created_at": "Jul 02, 2026  •  09:07 AM",
+    "status": "MODERATE RISK",
+    "subtitle": "Analysis error occurred",
+    "reasons": [
+      "Analysis error occurred"
+    ],
+    "confidence": 0.7,
+    "score": 50,
+    "ai_recommendation": "Analysis encountered an error. Please check your inputs and try again.",
+    "experience_emoji": "😊",
+    "raw_result": {
+      "ED": 50,
+      "detailed_risk": null,
+      "detector": {
+        "confidence": 0.7,
+        "label": "Moderate",
+        "reasons": [
+          "Analysis error occurred"
+        ],
+        "score": 50
+      },
+      "ed_recommendations": [
+        "Please try again",
+        "Check your input values"
+      ],
+      "error": "Worker error: 'ExerciseDangerMathModel' object has no attribute 'calculate_danger_score'",
+      "final_recommendation": "Analysis encountered an error. Please check your inputs and try again.",
+      "rag_context": {},
+      "user_data": {
+        "ActivityType": "Mid Cardio",
+        "Age": 25,
+        "CO": 130.0,
+        "DurationMins": 60,
+        "FitnessLevel": "Medium",
+        "HealthCondition": "Healthy",
+        "Humidity": 25,
+        "NO2": 25.0,
+        "O3": 59.0,
+        "PM10": 75.0,
+        "PM25": 48.0,
+        "SO2": 8.0,
+        "Temperature": 32,
+        "TimeOfDay": "Afternoon",
+        "UV": 10,
+        "Wind": 8,
+        "city_id": 7,
+        "city_name": "Yazd",
+        "sensitive": false
       }
     }
   }
