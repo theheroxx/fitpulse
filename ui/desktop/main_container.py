@@ -9,6 +9,7 @@ from ui.desktop.widgets.user_profile_widget import UserProfileWidget
 from ui.desktop.widgets.onboarding_wizard import OnboardingWizard
 from ui.desktop.widgets.records_page import RecordsPage
 from ui.desktop.widgets.history_tab import HistoryTab
+from ui.desktop.workers.ml_loader import MLLoaderWorker
 from ui.desktop.widgets.login_widget import LoginWidget
 from ui.desktop.widgets.register_widget import RegisterWidget
 
@@ -27,21 +28,60 @@ class MainContainer(QMainWindow):
 
         self.current_page = 0
         self.current_user = None
-        self.is_dragging  = False
+        self.is_dragging = False
         self.drag_position = QPoint()
         self.rag_available = False
 
-        # First, create the pages (or let setup_ui do it, but we need the references)
-        self.setup_ui()  # This should instantiate self.records_page and self.history_page
+        # ── FIRST: Create ED engine ─────────────────────────────
+        from ed_calculator.ed_engine import ExerciseDangerMathModel
+        self.ed_engine = ExerciseDangerMathModel()
 
-        # Now connect the signal AFTER they are created
-        # Assuming records_page and history_page are created inside setup_ui
+        # ── START ML WORKER (will populate ed_engine) ────────────
+        # self.ml_worker = MLLoaderWorker(r"D:\Data mining")
+        # self.ml_worker.progress.connect(self.on_ml_progress)
+        # self.ml_worker.finished.connect(self.on_ml_loaded)
+        # self.ml_worker.error.connect(self.on_ml_error)
+        # self.ml_worker.start()
+
+        # ── SETUP UI ──────────────────────────────────────────────
+        self.setup_ui()
+
+        # ── CONNECT SIGNALS ───────────────────────────────────────
         if hasattr(self, 'records_page') and hasattr(self, 'history_page'):
             self.records_page.records_changed.connect(self.history_page.refresh_records)
 
         self.apply_static_styles()
         self.showFullScreen()
         self.update_window_state_ui()
+
+    # =========================================================
+    # ML WORKER CALLBACKS
+    # =========================================================
+
+    def on_ml_progress(self, message):
+        print(f"[ML] {message}")
+
+    def on_ml_loaded(self, result):
+        print("[ML] Models loaded successfully!")
+        try:
+            if result and result.get('is_ready', False):
+                if 'bias_map' in result and result['bias_map']:
+                    self.ed_engine.bias_map = result['bias_map']
+                if 'sigma_map' in result and result['sigma_map']:
+                    self.ed_engine.sigma_map = result['sigma_map']
+                if 'scaler' in result and result['scaler'] is not None:
+                    self.ed_engine.scaler = result['scaler']
+                if 'cluster_model' in result and result['cluster_model'] is not None:
+                    self.ed_engine.cluster_model = result['cluster_model']
+                self.ed_engine.is_ai_ready = result.get('is_ready', False)
+                print("✅ ML models integrated into ED engine.")
+            else:
+                print("ℹ️ ML models not ready. ED engine will use rule-based logic.")
+        except Exception as e:
+            print(f"⚠️ Error integrating ML models: {e}")
+
+    def on_ml_error(self, error):
+        print(f"[ML] Error: {error}")
 
     # =========================================================
     # RAG STATUS
@@ -53,7 +93,7 @@ class MainContainer(QMainWindow):
             self.chat_page.set_rag_status(available)
 
     # =========================================================
-    # UI INIT
+    # UI SETUP
     # =========================================================
 
     def setup_ui(self):
@@ -103,7 +143,7 @@ class MainContainer(QMainWindow):
         self.register_page.registration_successful.connect(lambda: self.switch_to_page(0))
         self.stacked_widget.addWidget(self.register_page)
 
-        # 2 — Home  (pass self so home.py can reach history_page)
+        # 2 — Home
         self.home_page = HomePage(self)
         self.stacked_widget.addWidget(self.home_page)
 
@@ -121,7 +161,7 @@ class MainContainer(QMainWindow):
         self.profile_page.edit_clicked.connect(self.show_onboarding)
         self.stacked_widget.addWidget(self.profile_page)
 
-        # 6 — History  ← pass self so HistoryTab can call get_user_id if needed
+        # 6 — History
         self.history_page = HistoryTab(main_container=self)
         self.stacked_widget.addWidget(self.history_page)
 
@@ -152,10 +192,14 @@ class MainContainer(QMainWindow):
         icon.setObjectName("app_icon")
         layout.addWidget(icon)
 
-        tc = QVBoxLayout(); tc.setSpacing(0)
-        t = QLabel("AI Fitness Advisor"); t.setObjectName("app_title")
-        s = QLabel("Smart AI-powered health companion"); s.setObjectName("app_subtitle")
-        tc.addWidget(t); tc.addWidget(s)
+        tc = QVBoxLayout()
+        tc.setSpacing(0)
+        t = QLabel("AI Fitness Advisor")
+        t.setObjectName("app_title")
+        s = QLabel("Smart AI-powered health companion")
+        s.setObjectName("app_subtitle")
+        tc.addWidget(t)
+        tc.addWidget(s)
         layout.addLayout(tc)
         layout.addStretch()
 
@@ -173,8 +217,10 @@ class MainContainer(QMainWindow):
         layout.addWidget(self.logout_btn)
 
         for attr, label in [
-            ("min_btn", "—"), ("max_btn", "▢"),
-            ("fullscreen_btn", "⛶"), ("close_btn", "✕"),
+            ("min_btn", "—"),
+            ("max_btn", "▢"),
+            ("fullscreen_btn", "⛶"),
+            ("close_btn", "✕"),
         ]:
             btn = QPushButton(label)
             btn.setObjectName("window_btn")
@@ -188,9 +234,9 @@ class MainContainer(QMainWindow):
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         self.close_btn.clicked.connect(self.close)
 
-        bar.mousePressEvent      = self._tb_press
-        bar.mouseMoveEvent       = self._tb_move
-        bar.mouseReleaseEvent    = self._tb_release
+        bar.mousePressEvent = self._tb_press
+        bar.mouseMoveEvent = self._tb_move
+        bar.mouseReleaseEvent = self._tb_release
         bar.mouseDoubleClickEvent = self._tb_dblclick
         return bar
 
@@ -225,25 +271,30 @@ class MainContainer(QMainWindow):
             w = getattr(self, attr, None)
             if w:
                 w.setProperty("filled", filled_str)
-                w.style().unpolish(w); w.style().polish(w)
+                w.style().unpolish(w)
+                w.style().polish(w)
 
     # =========================================================
     # TAB BAR
     # =========================================================
 
     def _create_tab_bar(self):
-        bar = QFrame(); bar.setObjectName("tab_bar"); bar.setFixedHeight(74)
+        bar = QFrame()
+        bar.setObjectName("tab_bar")
+        bar.setFixedHeight(74)
+
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(22, 12, 22, 12); layout.setSpacing(12)
+        layout.setContentsMargins(22, 12, 22, 12)
+        layout.setSpacing(12)
 
         self.tab_buttons = []
         for text, cb in [
-            ("🏠 Home",     self.go_to_home),
+            ("🏠 Home", self.go_to_home),
             ("📊 Analysis", self.go_to_analysis),
-            ("💬 Chat",     self.go_to_chat),
-            ("👤 Profile",  self.go_to_profile),
-            ("🕓 History",  self.go_to_history),
-            ("📋 Records",  self.go_to_records),
+            ("💬 Chat", self.go_to_chat),
+            ("👤 Profile", self.go_to_profile),
+            ("🕓 History", self.go_to_history),
+            ("📋 Records", self.go_to_records),
         ]:
             btn = QPushButton(text)
             btn.setObjectName("tab_button")
@@ -259,8 +310,6 @@ class MainContainer(QMainWindow):
     def switch_to_page(self, index):
         self.current_page = index
         self.stacked_widget.setCurrentIndex(index)
-        # ── DO NOT set a QGraphicsOpacityEffect here — it would destroy
-        #    the drop-shadow effects on child cards ──
         if index >= 2:
             self._update_tab_style(index - 2)
 
@@ -310,7 +359,6 @@ class MainContainer(QMainWindow):
             self.records_page.load_records()
             self.history_page.sync_records(self.records_page.records)
 
-        # ── Tell history tab the user id so it can load DB records ──
         self.history_page.on_user_login(user["id"])
 
         self.tab_bar.setVisible(True)
@@ -329,7 +377,6 @@ class MainContainer(QMainWindow):
             self.records_page.records.clear()
             self.records_page.refresh_lists()
 
-        # ── Tell history tab to clear user-specific data ──
         self.history_page.on_user_logout()
 
         self.tab_bar.setVisible(False)

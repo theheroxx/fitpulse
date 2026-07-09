@@ -1,67 +1,7 @@
-# # detector/rule_engine.py
-# from detector.rules import evaluate_rules
-# from detector.confidence import calculate_confidence
-# from detector.normalizer import normalize_input
-# import pickle 
-
-
-# def rule_based_detector(input_data):
-#     """
-#     Full pipeline:
-#     normalize → evaluate → classify → confidence
-#     """
-
-#     data = normalize_input(input_data)
-    
-#     # Debug: Print input to rules
-#     print(f"🔍 RULES INPUT: Health={data.get('HealthCondition')}, "
-#           f"Activity={data.get('ActivityType')}, Duration={data.get('DurationMins')}, "
-#           f"ED={data.get('ED')}, TimeOfDay={data.get('TimeOfDay')}")
-
-#     # Get ALL 4 values from evaluate_rules
-#     score, reasons, rule_label, rule_confidence = evaluate_rules(data)
-    
-#     print(f"📊 RULES OUTPUT: score={score}, label={rule_label}, confidence={rule_confidence}, reasons={reasons}")
-
-#     # Use the label from rules - this is the important part!
-#     if rule_label:
-#         label = rule_label
-#     else:
-#         # Fallback classification (should not happen if rules are comprehensive)
-#         if score >= 70:
-#             label = "Unsafe"
-#         elif score >= 40:
-#             label = "Moderate"
-#         else:
-#             label = "Safe"
-
-#     # Use confidence from rules if provided
-#     if rule_confidence:
-#         confidence = rule_confidence
-#     else:
-#         confidence = calculate_confidence(score, reasons)
-
-    
-
-#     return {
-#         "label": label,
-#         "confidence": confidence,
-#         "score": score,
-#         "reasons": reasons,
-#         "normalized_input": data
-#     }
-
-
-
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-#detector/rule_engine.py
+# detector/rule_engine.py
 from detector.rules import evaluate_rules
 from detector.confidence import calculate_confidence
 from detector.normalizer import normalize_input
-import pickle
 import joblib
 import os
 import numpy as np
@@ -78,21 +18,34 @@ _ml_available = False
 
 def _load_ml_model():
     global _lgbm_model, _lgbm_features, _lgbm_encoder, _ml_available
-    try:
-        model_path = r"D:\ED\LGBM\detector_lgbm.pkl"
-        features_path = r"D:\ED\LGBM\lgbm_features.pkl"
-        encoder_path = r"D:\ED\LGBM\lgbm_label_encoder.pkl"
-        
-        if os.path.exists(model_path):
+    
+    # Use the exact filenames you have
+    base_path = r"D:\ED\LGBM"
+    model_path = os.path.join(base_path, "detector_lgbm.pkl")
+    features_path = os.path.join(base_path, "lgbm_features.pkl")
+    encoder_path = os.path.join(base_path, "lgbm_label_encoder.pkl")
+    
+    if os.path.exists(model_path):
+        try:
             _lgbm_model = joblib.load(model_path)
-            _lgbm_features = joblib.load(features_path)
-            _lgbm_encoder = joblib.load(encoder_path)
+            print(f"✅ LightGBM model loaded from: {model_path}")
+            
+            if os.path.exists(features_path):
+                _lgbm_features = joblib.load(features_path)
+                print(f"✅ Features loaded from: {features_path}")
+            
+            if os.path.exists(encoder_path):
+                _lgbm_encoder = joblib.load(encoder_path)
+                print(f"✅ Label encoder loaded from: {encoder_path}")
+            
             _ml_available = True
-            print("✅ LightGBM model loaded for detector")
-        else:
-            print("⚠️ LightGBM model not found, using rule-based only")
-    except Exception as e:
-        print(f"⚠️ Failed to load LightGBM model: {e}")
+            print("✅ LightGBM detector ready")
+            return
+        except Exception as e:
+            print(f"⚠️ Failed to load LightGBM model: {e}")
+    
+    print("⚠️ LightGBM model not found, using rule-based only")
+    _ml_available = False
 
 # Load at module import
 _load_ml_model()
@@ -155,7 +108,7 @@ def check_hard_rules(data, ed_score):
     return None  # No hard rule triggered
 
 # ============================================================================
-# ML Prediction
+# ML Prediction (LightGBM)
 # ============================================================================
 
 def ml_predict(data, ed_score, ed_raw=None, risk_score=None):
@@ -187,10 +140,11 @@ def ml_predict(data, ed_score, ed_raw=None, risk_score=None):
         X = pd.get_dummies(X, columns=categorical_cols)
         
         # Ensure all training columns are present
-        for col in _lgbm_features:
-            if col not in X.columns:
-                X[col] = 0
-        X = X[_lgbm_features]
+        if _lgbm_features:
+            for col in _lgbm_features:
+                if col not in X.columns:
+                    X[col] = 0
+            X = X[_lgbm_features]
         
         # Predict
         pred_label_encoded = _lgbm_model.predict(X)[0]
@@ -198,7 +152,12 @@ def ml_predict(data, ed_score, ed_raw=None, risk_score=None):
         confidence = np.max(pred_proba)
         
         # Decode label
-        label = _lgbm_encoder.inverse_transform([pred_label_encoded])[0]
+        if _lgbm_encoder:
+            label = _lgbm_encoder.inverse_transform([pred_label_encoded])[0]
+        else:
+            # Fallback mapping if encoder is missing
+            label_map = {0: "Safe", 1: "Moderate", 2: "Unsafe"}
+            label = label_map.get(pred_label_encoded, "Moderate")
         
         # Convert label to score
         score_map = {"Safe": 20, "Moderate": 50, "Unsafe": 80}
@@ -213,7 +172,7 @@ def ml_predict(data, ed_score, ed_raw=None, risk_score=None):
         return None
 
 # ============================================================================
-# Main detector function (updated)
+# Main detector function
 # ============================================================================
 
 def rule_based_detector(input_data):

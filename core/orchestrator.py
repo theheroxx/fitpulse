@@ -10,7 +10,7 @@ os.environ['ANONYMIZED_TELEMETRY'] = 'False'
 from ed_calculator.ed_engine import ExerciseDangerPredictor
 from detector import rule_based_detector
 from database import get_exercises, get_foods
-from transformer.recommender import generate_recommendation
+from transformer.recommender import generate_recommendation, generate_recommendation_with_rag
 
 
 # ============================================================================
@@ -139,8 +139,6 @@ def get_simple_recommendations(ed_score, PL, WD):
     return recommendations
 
 
-# core/orchestrator.py
-
 def calculate_detailed_environmental_risk(weather_data, air_data):
     """
     Calculate environmental risk using the mathematical model.
@@ -179,7 +177,6 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
         
     except Exception as e:
         print(f"ERROR in calculate_detailed_environmental_risk!! {e}")
-       # traceback.print_exc()
         # Return fallback
         return {
             'FINAL_SCORE': 50,
@@ -203,11 +200,17 @@ def get_risk_recommendation(risk_score):
         return "✅ Fully safe - Good conditions for outdoor exercise.", "safe"
 
 
+# ============================================================================
+# MAIN PIPELINE — ALWAYS CALLS THE LLM
+# ============================================================================
+
 def run_pipeline(user_input):
-    """Full system pipeline"""
+    """Full system pipeline — LLM is ALWAYS called for the final recommendation."""
     user_data = user_input.copy()
 
+    # =========================================================
     # 1) ED Calculation
+    # =========================================================
     if "ED" not in user_data:
         weather_data = {
             "temp": user_data.get("Temperature", user_data.get("temp", user_data.get("WD", 22))),
@@ -249,10 +252,14 @@ def run_pipeline(user_input):
     WD = user_data.get("WD", user_data.get("Temperature", 22))
     ed_recommendations = get_simple_recommendations(ed, PL, WD)
 
-    # 2) Detector
+    # =========================================================
+    # 2) Detector (Rules + ML)
+    # =========================================================
     detector_output = rule_based_detector(user_data)
 
+    # =========================================================
     # 3) Exercise/Food Recommendations
+    # =========================================================
     user_profile = {
         "health_condition": user_data.get("HealthCondition", "Healthy"),
         "fitness_level": user_data.get("FitnessLevel", "Medium")
@@ -274,28 +281,73 @@ def run_pipeline(user_input):
         ed_recommendations.append("\n🥗 Recommended Foods:")
         ed_recommendations.extend([f"  • {food}" for food in food_recommendations[:5]])
 
+    # =========================================================
     # 4) RAG Context (thread-safe JSON search)
+    # =========================================================
     query = build_query(user_data, detector_output)
+    rag_context = ""
     try:
-        context = retrieve_context(query)
+        context_result = retrieve_context(query)
+        docs = context_result.get('documents', [[]])[0] if context_result.get('documents') else []
+        if docs:
+            rag_context = "\n\n".join(docs[:5])
     except Exception as e:
         print(f"RAG retrieval error: {e}")
-        context = {"documents": [], "error": str(e)}
 
-    # 5) LLM Recommendation
+    # =========================================================
+    # 5) LLM Recommendation — ALWAYS CALLED
+    # =========================================================
+    final_recommendation = ""
+    
     try:
-        final_recommendation = generate_recommendation(user_data, detector_output)
+        # ALWAYS call the LLM — regardless of detector confidence
+        print("🤖 Orchestrator: Calling LLM for final recommendation...")
+        
+        # Get ED score safely
+        ed_score = user_data.get("ED", 0)
+        
+        # Ensure detector_output has all needed fields
+        if "label" not in detector_output:
+            detector_output["label"] = "Safe"
+        if "confidence" not in detector_output:
+            detector_output["confidence"] = 0.8
+            
+        # Call LLM with full context
+        if rag_context and len(rag_context) > 50:
+            final_recommendation = generate_recommendation_with_rag(
+                user_data, 
+                detector_output, 
+                query=query,
+                rag_context=rag_context
+            )
+        else:
+            final_recommendation = generate_recommendation(user_data, detector_output, query=query)
+            
+        print(f"🤖 Orchestrator: LLM response received ({len(final_recommendation)} chars)")
+        
     except Exception as e:
-        print(f"LLM generation error: {e}")
-        final_recommendation = f"Unable to generate AI recommendation. Error: {e}"
+        print(f"❌ LLM generation error: {e}")
+        # Fallback to a human-friendly message based on the detector label
+        label = detector_output.get('label', 'Safe')
+        if label == 'Safe':
+            final_recommendation = "✅ Great conditions! Enjoy your workout today. Stay hydrated and listen to your body."
+        elif label == 'Moderate':
+            final_recommendation = "💡 Moderate risk. Take it a bit easier, use extra breaks, and stay aware of how you feel."
+        elif label == 'High':
+            final_recommendation = "🔶 High risk. Consider reducing intensity, taking more breaks, or moving indoors."
+        else:
+            final_recommendation = "⚠️ Unsafe conditions. Avoid outdoor exercise today. Choose an indoor activity instead."
 
+    # =========================================================
+    # 6) Return Results
+    # =========================================================
     return {
         "ED": ed,
         "detector": detector_output,
         "ed_recommendations": ed_recommendations,
         "exercise_recommendations": exercise_recommendations,
         "food_recommendations": food_recommendations,
-        "rag_context": context,
+        "rag_context": context_result if 'context_result' in locals() else {"documents": []},
         "final_recommendation": final_recommendation,
         "detailed_risk": detailed_result
     }
