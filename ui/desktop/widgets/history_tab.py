@@ -96,16 +96,22 @@ class ExperienceEntryCard(_Card):
         self._build()
 
     def _build(self):
-        emoji  = self.entry_data.get("emoji", "😐")
-        m      = MOOD.get(emoji, MOOD["😐"])
-        value  = self.entry_data.get("experience", "neutral").capitalize()
-        ts     = self.entry_data.get("created_at", "")
-        # Format timestamp nicely if it's ISO
-        try:
-            dt = datetime.fromisoformat(ts)
-            ts = dt.strftime("%b %d, %Y  %I:%M %p")
-        except Exception:
-            pass
+        emoji = self.entry_data.get("emoji", "😐")
+        m = MOOD.get(emoji, MOOD["😐"])
+        value = self.entry_data.get("experience", "neutral").capitalize()
+        ts = self.entry_data.get("created_at", "")
+
+        # ── Safe timestamp formatting ──────────────────────────────
+        if isinstance(ts, datetime):
+            formatted_ts = ts.strftime("%b %d, %Y  %I:%M %p")
+        elif isinstance(ts, str):
+            try:
+                dt = datetime.fromisoformat(ts)
+                formatted_ts = dt.strftime("%b %d, %Y  %I:%M %p")
+            except (ValueError, TypeError):
+                formatted_ts = str(ts)
+        else:
+            formatted_ts = ""
 
         self.setObjectName("expCard")
         self.setStyleSheet(f"""
@@ -164,7 +170,7 @@ class ExperienceEntryCard(_Card):
         self.checkbox.toggled.connect(lambda: self.selection_changed.emit())
         rc.addWidget(self.checkbox, alignment=Qt.AlignmentFlag.AlignRight)
         rc.addStretch()
-        ts_lbl = QLabel(ts)
+        ts_lbl = QLabel(formatted_ts)   # Use formatted_ts instead of raw ts
         ts_lbl.setStyleSheet(
             f"color:{TEXT_MUTED}; font-size:10px; background:transparent;"
         )
@@ -805,23 +811,32 @@ class HistoryTab(QWidget):
             return
         try:
             rows = get_all_experience_records(self._user_id)
-            # Remove stale experience entries first
             self.history_entries = [
                 e for e in self.history_entries if e.get("type") != "experience"
             ]
             for row in rows:
                 self.history_entries.append({
-                    "id":         str(row["id"]),
-                    "type":       "experience",
-                    "emoji":      row["emoji"],
-                    # DB column name is experience_value
+                    "id": str(row["id"]),
+                    "type": "experience",
+                    "emoji": row["emoji"],
                     "experience": row["experience_value"],
                     "created_at": row["created_at"],
                 })
-            # Sort all entries newest-first (ISO timestamp sorts lexicographically)
-            self.history_entries.sort(
-                key=lambda e: e.get("created_at", ""), reverse=True
-            )
+            # Safe sort: convert to datetime for comparison
+            def safe_key(e):
+                val = e.get("created_at")
+                if val is None:
+                    return datetime.min
+                if isinstance(val, datetime):
+                    return val
+                if isinstance(val, str):
+                    try:
+                        return datetime.fromisoformat(val)
+                    except (ValueError, TypeError):
+                        return datetime.min
+                return datetime.min
+
+            self.history_entries.sort(key=safe_key, reverse=True)
             self._render_history()
         except Exception as ex:
             print(f"[HistoryTab] _load_experience_from_db error: {ex}")
