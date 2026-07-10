@@ -20,7 +20,8 @@ import os
 
 from database.db import (
     init_db,
-    get_db
+    get_db,
+    table_exists 
 )
 
 # =============================================================================
@@ -104,27 +105,31 @@ def hash_password(password):
 
 def load_dataframe(query, params=None):
     with get_db() as conn:
-        return pd.read_sql_query(query, conn, params=params or ())
+        with conn.cursor() as cur:
+            cur.execute(query, params or ())
+            rows = cur.fetchall()
+            return pd.DataFrame(rows)
 
 def execute_query(query, params=None):
     with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(query, params or ())
-        conn.commit()
+        with conn.cursor() as cur:
+            cur.execute(query, params or ())
+            conn.commit()
+
 
 def table_exists(table_name):
-    """Check if a table exists in the database."""
     try:
         with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-                (table_name,)
-            )
-            return cursor.fetchone() is not None
-    except:
+            with conn.cursor() as cur:
+                # PostgreSQL stores table names in lowercase
+                cur.execute(
+                    "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s)",
+                    (table_name.lower(),)
+                )
+                return cur.fetchone()[0]
+    except Exception:
         return False
-
+        
 def start_api_server():
     """Start the FastAPI server as a background process."""
     try:
@@ -333,7 +338,7 @@ elif page == "👥 Users":
                     hashed_pw = hash_password(new_password)
                     city_id = None
                     if new_city:
-                        city_result = load_dataframe("SELECT id FROM cities WHERE name = ?", (new_city,))
+                        city_result = load_dataframe("SELECT id FROM cities WHERE name = %s", (new_city,))
                         if not city_result.empty:
                             city_id = city_result.iloc[0]["id"]
                     execute_query("""
@@ -342,7 +347,7 @@ elif page == "👥 Users":
                             health_condition, fitness_level,
                             city_id, is_admin
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """, (new_username, new_email, hashed_pw, new_age,
                           new_health, new_fitness, city_id, new_is_admin))
                     st.success(f"✅ User '{new_username}' created")
@@ -367,7 +372,7 @@ elif page == "👥 Users":
         else:
             try:
                 hashed_pw = hash_password(new_password)
-                execute_query("UPDATE users SET password = ? WHERE id = ?", (hashed_pw, user_options[selected_user]))
+                execute_query("UPDATE users SET password = %s WHERE id = %s", (hashed_pw, user_options[selected_user]))
                 st.success(f"✅ Password reset for '{selected_user}'")
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -381,16 +386,16 @@ elif page == "👥 Users":
         try:
             user_id = user_options[user_to_delete]
             admin_count = load_dataframe("SELECT COUNT(*) as count FROM users WHERE is_admin = 1").iloc[0]["count"]
-            is_admin = load_dataframe("SELECT is_admin FROM users WHERE id = ?", (user_id,)).iloc[0]["is_admin"]
+            is_admin = load_dataframe("SELECT is_admin FROM users WHERE id = %s", (user_id,)).iloc[0]["is_admin"]
             if is_admin and admin_count <= 1:
                 st.error("Cannot delete the last admin user")
             else:
-                execute_query("DELETE FROM analysis_logs WHERE user_id = ?", (user_id,))
+                execute_query("DELETE FROM analysis_logs WHERE user_id = %s", (user_id,))
                 if table_exists("analysis_history"):
-                    execute_query("DELETE FROM analysis_history WHERE user_id = ?", (user_id,))
+                    execute_query("DELETE FROM analysis_history WHERE user_id = %s", (user_id,))
                 if table_exists("experience_records"):
-                    execute_query("DELETE FROM experience_records WHERE user_id = ?", (user_id,))
-                execute_query("DELETE FROM users WHERE id = ?", (user_id,))
+                    execute_query("DELETE FROM experience_records WHERE user_id = %s", (user_id,))
+                execute_query("DELETE FROM users WHERE id = %s", (user_id,))
                 st.success(f"✅ User '{user_to_delete}' deleted")
                 st.rerun()
         except Exception as e:
@@ -437,7 +442,7 @@ elif page == "🌍 Cities":
                         name, country, temp, humidity, wind, uv,
                         pm25, pm10, co, o3, no2, so2, aqi
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (name, country, temp, humidity, wind, uv,
                       pm25, pm10, co, o3, no2, so2, aqi))
                 st.success("✅ City added")
@@ -470,7 +475,7 @@ elif page == "🏋️ Exercises":
                         name, type, intensity, duration_minutes,
                         calories_per_hour, benefits, precautions, contraindications
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (name, ex_type, intensity, duration, calories, benefits, precautions, contraindications))
                 st.success("✅ Exercise added")
                 st.rerun()
@@ -507,7 +512,7 @@ elif page == "🥗 Foods":
                         carbs_g, fat_g, fiber_g, glycemic_index,
                         benefits, allergens
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (name, category, calories, protein, carbs, fat, fiber, glycemic_index, benefits, allergens))
                 st.success("✅ Food added")
                 st.rerun()
@@ -521,21 +526,27 @@ elif page == "🥗 Foods":
 elif page == "😊 Experience":
     st.title("😊 Diet Check‑ins")
 
-    if not table_exists("experience_records"):
-        st.info("No diet check‑in records yet. Users can log their mood from the home page.")
+    # ── Bypass table_exists check ─────────────────────────────
+    try:
+        df = load_dataframe("""
+            SELECT
+                er.id,
+                u.username,
+                er.emoji,
+                er.experience_value,
+                er.created_at
+            FROM experience_records er
+            LEFT JOIN users u ON er.user_id = u.id
+            ORDER BY er.created_at DESC
+        """)
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
         st.stop()
 
-    df = load_dataframe("""
-        SELECT
-            er.id,
-            u.username,
-            er.emoji,
-            er.experience_value,
-            er.created_at
-        FROM experience_records er
-        LEFT JOIN users u ON er.user_id = u.id
-        ORDER BY er.created_at DESC
-    """)
+    if df.empty:
+        st.info("No diet check‑in records yet.")
+        st.stop()
+
     st.dataframe(df, use_container_width=True)
 
     st.divider()
@@ -563,7 +574,7 @@ elif page == "😊 Experience":
             if submit_exp:
                 try:
                     execute_query(
-                        "INSERT INTO experience_records (user_id, experience_value, emoji) VALUES (?, ?, ?)",
+                        "INSERT INTO experience_records (user_id, experience_value, emoji) VALUES (%s, %s, %s)",
                         (user_id, value, emoji)
                     )
                     st.success("✅ Check‑in added")
