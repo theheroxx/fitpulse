@@ -815,14 +815,17 @@ class HistoryTab(QWidget):
                 e for e in self.history_entries if e.get("type") != "experience"
             ]
             for row in rows:
+                created = row["created_at"]
+                if isinstance(created, datetime):
+                    created = created.isoformat()
                 self.history_entries.append({
                     "id": str(row["id"]),
                     "type": "experience",
                     "emoji": row["emoji"],
                     "experience": row["experience_value"],
-                    "created_at": row["created_at"],
+                    "created_at": created,
                 })
-            # Safe sort: convert to datetime for comparison
+            # Sort using safe_key
             def safe_key(e):
                 val = e.get("created_at")
                 if val is None:
@@ -850,9 +853,14 @@ class HistoryTab(QWidget):
         try:
             with open(self.history_file, "r", encoding="utf-8") as f:
                 saved = json.load(f)
-            # Keep only analysis entries from JSON
             for e in saved:
                 if e.get("type") == "analysis":
+                    # Optionally convert back to datetime if needed
+                    if "created_at" in e and isinstance(e["created_at"], str):
+                        try:
+                            e["created_at"] = datetime.fromisoformat(e["created_at"])
+                        except:
+                            pass
                     self.history_entries.append(e)
             self._render_history()
         except Exception as ex:
@@ -860,7 +868,14 @@ class HistoryTab(QWidget):
 
     def _save_json_history(self):
         try:
-            to_save = [e for e in self.history_entries if e.get("type") == "analysis"]
+            to_save = []
+            for e in self.history_entries:
+                if e.get("type") == "analysis":
+                    entry = e.copy()
+                    # Convert datetime to ISO string
+                    if "created_at" in entry and isinstance(entry["created_at"], datetime):
+                        entry["created_at"] = entry["created_at"].isoformat()
+                    to_save.append(entry)
             with open(self.history_file, "w", encoding="utf-8") as f:
                 json.dump(to_save, f, indent=2, ensure_ascii=False)
         except Exception as ex:

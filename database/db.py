@@ -7,33 +7,52 @@ import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 
-# ─── PostgreSQL configuration (from environment or defaults) ───
+import time
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
 DB_HOST = os.getenv("PG_HOST", "localhost")
 DB_PORT = os.getenv("PG_PORT", "5432")
 DB_NAME = os.getenv("PG_DB", "fitpulse")
 DB_USER = os.getenv("PG_USER", "admin")
 DB_PASS = os.getenv("PG_PASS", "hossein100")
 
-# ─── Connection function ──────────────────────────────────────────
 @contextmanager
-def get_db():
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASS,
-        cursor_factory=RealDictCursor
-    )
-    conn.autocommit = False
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+def get_db(retries=3, delay=1):
+    last_exception = None
+    for attempt in range(retries):
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASS,
+                cursor_factory=RealDictCursor,
+                connect_timeout=5,
+                keepalives_idle=5,
+                keepalives_interval=1,
+                keepalives_count=2,
+            )
+            conn.autocommit = False
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+            return
+        except psycopg2.OperationalError as e:
+            last_exception = e
+            print(f"Database connection attempt {attempt+1}/{retries} failed: {e}")
+            if attempt < retries - 1:
+                time.sleep(delay)
+                continue
+            raise
+    # pyrefly: ignore [bad-raise]
+    raise last_exception
 
 
 def table_exists(table_name):

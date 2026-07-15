@@ -21,7 +21,7 @@ import re
 client = ollama.Client(host="http://127.0.0.1:11434")
 
 # Use your fine-tuned model
-MODEL_NAME = "my-fitness-model"
+MODEL_NAME = "fitpulse"
 
 # ---------------------------------------------------------------------------
 # Generation profiles (centralised so all call sites stay consistent)
@@ -31,7 +31,17 @@ MODEL_NAME = "my-fitness-model"
 # Low temperature keeps a safety advisor factual and consistent.
 # Safe stop tokens only: never include markdown ('---') or the header word
 # ('Recommendation:'), which would truncate or empty the output.
-STOP_SAFE = ["<|im_end|>", "<|endoftext|>", "\nUser:", "\nQuestion:"]
+# NOTE: On recent Ollama builds, models on the new Go-native "ollamarunner"
+# path (this includes Qwen3) accept repeat_penalty / frequency_penalty /
+# presence_penalty in the API but silently IGNORE them -- only temperature,
+# top_k, top_p and min_p are actually applied by the sampler
+# (ollama/ollama#15783). If you're on that path, repeat_penalty below is a
+# no-op, which is the likely cause of repetition loops (e.g. a sentence
+# template repeating with only a number changing). Verify with
+# `ollama show my-fitness-model --modelfile` / your Ollama version, and lean
+# on temperature/top_k/top_p/min_p (which do work) plus the post-generation
+# repetition guard below as the real safety net either way.
+STOP_SAFE = ["<|im_end|>", "<|endoftext|>", "\nUser:", "\nQuestion:", "<|im_start|>"]
 
 # Assistant-prefill text: we make the model START its turn already answering,
 # which is the most reliable way to suppress a "thinking out loud" fine-tune
@@ -40,21 +50,27 @@ PRIME_REC = "Here's my advice: "
 PRIME_TABLE = "|"
 
 OPTS_RECOMMENDATION = {
-    "temperature": 0.4,
+    "temperature": 0.35,
     "top_p": 0.9,
-    "num_predict": 220,        # Enough to complete 3-5 sentences
+    "top_k": 40,               # Respected even where repeat_penalty is ignored
+    "min_p": 0.05,              # Cuts the long tail that loops tend to live in
+    "num_predict": 150,        # Enough for 2-4 sentences, less room to spiral
     "num_ctx": 1536,           # Room for RAG context + answer
-    "repeat_penalty": 1.1,
+    "repeat_penalty": 1.3,     # Kept for engines that honor it; see note above
+    "repeat_last_n": 128,
     "stop": STOP_SAFE,
 }
 
 OPTS_TABLE = {
     "temperature": 0.2,
     "top_p": 0.9,
+    "top_k": 40,
+    "min_p": 0.05,
     "num_predict": 600,        # Enough for a 7-day x 5-col table
     "num_ctx": 1536,
-    "repeat_penalty": 1.05,
-    "stop": ["<|im_end|>", "<|endoftext|>", "\nUser:", "\nQuestion:"],
+    "repeat_penalty": 1.2,
+    "repeat_last_n": 128,
+    "stop": ["<|im_end|>", "<|endoftext|>", "\nUser:", "\nQuestion:", "<|im_start|>"],
 }
 
 
@@ -135,10 +151,6 @@ def _strip_thinking(text: str) -> str:
     return text.strip()
 
 
-# Sentences that begin with these markers are the model "thinking out loud".
-# This fine-tune emits plain-text reasoning (no <think> tags), so we strip
-# leading meta-reasoning sentences. Kept narrow to avoid deleting real advice
-# like "First, warm up..." -- only first-person planning / user-analysis cues.
 _REASON_STARTS = re.compile(
     r"^(okay\b|ok\b|hmm|well,|alright|so,|so i\b|now,|right,|"
     r"let me\b|let's\b|lets\b|"
@@ -151,16 +163,71 @@ _REASON_STARTS = re.compile(
 )
 
 
+def _sentence_template(sentence: str) -> str:
+    """Collapse a sentence to a shape for repetition detection.
+
+    Strips digits and extra whitespace so sentences that only differ by a
+    number (the classic 'I want to do it for 40 minutes... 60 minutes...
+    90 minutes...' loop) are recognised as the same repeated template even
+    though the literal text isn't identical.
+    """
+    return re.sub(r"\s+", " ", re.sub(r"\d+", "#", sentence.strip().lower()))
+
+
 def _strip_reasoning_prose(text: str) -> str:
-    """Drop leading 'thinking out loud' sentences from flowing prose."""
+    """
+    Truncate at the first sign of mid‑text drift or repetition loop.
+    Scans the whole text, not just the start.
+    """
     if not text:
         return text
-    parts = re.split(r"(?<=[.!?])\s+", text.strip())
-    i = 0
-    while i < len(parts) and _REASON_STARTS.match(parts[i].strip()):
-        i += 1
-    kept = " ".join(parts[i:]).strip()
-    return kept  # may be empty -> caller will fall back
+
+    # 1. Look for reasoning drift markers anywhere in the text.
+    # Expanded to include standalone "okay", "so", "now", "well", "alright",
+    # and common first-person planning phrases.
+    drift_pattern = re.compile(
+        r'\b(okay[,.]?\s+|so[,.]?\s+|now[,.]?\s+|well[,.]?\s+|alright[,.]?\s+|'
+        r'but\s+wait\s+|wait\s+,\s*|'
+        r'i think\s+|i should\s+|i want\s+|i need\s+|let me\s+|'
+        r'i\'ll\s+|i\'m going\s+|i would\s+|'
+        r'breaking it down\s+|step by step\s+|'
+        r'for someone who\s+|given that\s+|the user\s+|they want\s+)',
+        re.IGNORECASE
+    )
+    match = drift_pattern.search(text)
+    if match:
+        # Truncate at the start of the drifting sentence.
+        before = text[:match.start()]
+        # Find the last sentence-ending punctuation before the drift.
+        last_punct = max(
+            before.rfind('.'),
+            before.rfind('!'),
+            before.rfind('?')
+        )
+        if last_punct != -1:
+            # Keep everything up to and including that punctuation.
+            return before[:last_punct+1].strip()
+        else:
+            # If no punctuation, cut at the drift start.
+            return before.strip()
+
+    # 2. Detect repetition loop (template with changing numbers).
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    seen_templates = set()
+    kept = []
+    for sentence in sentences:
+        s = sentence.strip()
+        if not s:
+            continue
+        # Remove digits for template comparison.
+        template = re.sub(r'\d+', '#', s)
+        # Also collapse numbers like "40" to "#" but we already did.
+        if template in seen_templates:
+            break  # loop detected, stop here
+        seen_templates.add(template)
+        kept.append(sentence)
+
+    return ' '.join(kept).strip()
 
 
 def _clean_response(text: str) -> str:
@@ -377,11 +444,12 @@ def generate_recommendation(
         time_of_day = user.get("TimeOfDay", "N/A")
 
         system = (
-            "You are a friendly fitness safety coach talking directly TO the user. "
-            "Reply with ONLY the final advice in 2-4 short sentences, in second "
-            "person (\"you\"). Do NOT think out loud, do NOT explain your reasoning, "
-            "do NOT restate the question, do NOT mention \"the user\". "
-            "Start immediately with the advice. Use clean Markdown. /no_think"
+            "You are a fitness safety coach. "
+            "Do not answer too long. "
+            "Do NOT think out loud. Do NOT explain your reasoning. "
+            "Do NOT use words like 'Okay, ', 'I think', 'maybe', 'okay', or 'let me'. "
+            "Start with 'You should' or 'It's best to'. "
+            "Do NOT actually write down your reasoning, just give the final advice. "
         )
         user_msg = (
             f"User: {age} years old, {health}, {fitness} fitness.\n"
