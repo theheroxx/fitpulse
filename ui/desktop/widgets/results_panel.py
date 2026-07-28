@@ -5,12 +5,6 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 
 
-# =================================================================
-# DESIGN TOKENS
-# =================================================================
-# Centralised so the whole panel reads from one palette instead of
-# scattering hex values through the widget tree.
-
 BRAND_START = "#2563eb"
 BRAND_END = "#7c3aed"
 
@@ -84,10 +78,6 @@ def _clear_layout(layout):
         if child_layout is not None:
             _clear_layout(child_layout)
 
-
-# =================================================================
-# SMALL REUSABLE WIDGETS
-# =================================================================
 
 class ScoreGauge(QWidget):
     """Animated ring gauge that visualises the detector's 0-100 score."""
@@ -197,14 +187,7 @@ class LoadingSpinner(QWidget):
 
 class ResultsPanel(QWidget):
 
-    # baseline blur used by the elevation shadow; loading pulses above this,
-    # results reset back to it so the card doesn't visually "grow".
     SHADOW_BASE_BLUR = 45
-
-    # Fixed vertical slot for the icon/spinner/gauge stage. Must be >= the
-    # tallest child (gauge = 104). Keeping it fixed prevents the row from
-    # collapsing when swapping widgets — which is what used to make the
-    # spinner appear lower than the idle icon and push content downward.
     ICON_STAGE_SIZE = 112
 
     def __init__(self):
@@ -218,18 +201,9 @@ class ResultsPanel(QWidget):
         self.apply_styles()
         self.setup_animations()
 
-    # =========================================================
-    # UI
-    # =========================================================
-
     def setup_ui(self):
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-
-        # =====================================================
-        # SCROLL
-        # =====================================================
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -244,43 +218,29 @@ class ResultsPanel(QWidget):
         self.main_layout.setContentsMargins(28, 28, 28, 28)
         self.main_layout.setSpacing(26)
 
-        # =====================================================
-        # RESULT CARD (hero)
-        # =====================================================
-
+        # Hero Card
         self.result_card = QFrame()
         self.result_card.setObjectName("result_card")
         self.result_card.setProperty("status", "loading")
         self.result_card.setMinimumHeight(320)
-        # Keep the hero card's vertical footprint bound to its content so
-        # it doesn't grow the second time results arrive.
         self.result_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
         result_layout = QVBoxLayout(self.result_card)
         result_layout.setContentsMargins(36, 32, 36, 34)
         result_layout.setSpacing(20)
 
-        # -- top accent bar -----------------------------------
+        # Glow bar
         self.glow_bar = QFrame()
         self.glow_bar.setObjectName("glow_bar")
         self.glow_bar.setFixedHeight(5)
         result_layout.addWidget(self.glow_bar)
 
-        # -- icon / spinner / gauge stage ----------------------
-        # Fixed-size stage so switching between idle icon / spinner / gauge
-        # never changes the row height (which used to make the spinner
-        # appear lower than the idle icon and push the rest of the card
-        # downward). All three widgets are centered inside the same rect;
-        # only visibility toggles.
+        # Stage setup
         self.icon_stage = QWidget()
-        self.icon_stage.setFixedHeight(self.ICON_STAGE_SIZE)
-        self.icon_stage.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-
+        self.icon_stage.setFixedSize(self.ICON_STAGE_SIZE, self.ICON_STAGE_SIZE)
+        
         self.icon_stack = QStackedLayout(self.icon_stage)
         self.icon_stack.setContentsMargins(0, 0, 0, 0)
-        # Overlay mode: all pages occupy the same rect simultaneously; we
-        # just toggle the visibility of the inner widget on each page.
-        self.icon_stack.setStackingMode(QStackedLayout.StackingMode.StackAll)
 
         self.idle_icon = QLabel(STATUS_STYLES["loading"]["icon"])
         self.idle_icon.setObjectName("idle_icon")
@@ -297,18 +257,18 @@ class ResultsPanel(QWidget):
         self.icon_stack.addWidget(self._spinner_page)
         self.icon_stack.addWidget(self._gauge_page)
 
-        self.spinner.setVisible(False)
-        self.gauge.setVisible(False)
+        stage_wrapper = QHBoxLayout()
+        stage_wrapper.addStretch()
+        stage_wrapper.addWidget(self.icon_stage)
+        stage_wrapper.addStretch()
+        result_layout.addLayout(stage_wrapper)
 
-        result_layout.addWidget(self.icon_stage)
-
-        # -- info wrapper (badge, subtitle, meta, reasons) -----
+        # Info wrapper
         self.info_wrapper = QWidget()
         info_layout = QVBoxLayout(self.info_wrapper)
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(12)
 
-        # status badge (pill)
         self.status_badge = QFrame()
         self.status_badge.setObjectName("status_badge")
 
@@ -327,14 +287,12 @@ class ResultsPanel(QWidget):
         badge_wrapper.addStretch()
         info_layout.addLayout(badge_wrapper)
 
-        # subtitle
         self.status_subtitle = QLabel("Enter your data and click Analyze")
         self.status_subtitle.setObjectName("status_subtitle")
         self.status_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_subtitle.setWordWrap(True)
         info_layout.addWidget(self.status_subtitle)
 
-        # confidence chip
         meta_row = QHBoxLayout()
         meta_row.addStretch()
         self.confidence_pill = QLabel("Confidence  —")
@@ -346,7 +304,6 @@ class ResultsPanel(QWidget):
         meta_row.addStretch()
         info_layout.addLayout(meta_row)
 
-        # key-factor reasons
         self.reasons_container = QFrame()
         self.reasons_container.setObjectName("reasons_panel")
         self.reasons_container.setVisible(False)
@@ -356,13 +313,9 @@ class ResultsPanel(QWidget):
         info_layout.addWidget(self.reasons_container)
 
         result_layout.addWidget(self.info_wrapper)
-
         self.main_layout.addWidget(self.result_card)
 
-        # =====================================================
-        # AI SECTION
-        # =====================================================
-
+        # AI Section
         self.ai_section = QWidget()
         self.ai_section.setVisible(False)
 
@@ -405,10 +358,7 @@ class ResultsPanel(QWidget):
         self.ai_text.setFrameStyle(QFrame.NoFrame)
         self.ai_text.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ai_text.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        # QTextBrowser IS a QTextEdit — setWordWrapMode is valid here.
         self.ai_text.setWordWrapMode(QTextOption.WordWrap)
-        # Give it a stable minimum height so subsequent analyses don't cause
-        # the layout above/below to visibly jump.
         self.ai_text.setMinimumHeight(140)
         self.ai_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         ai_card_layout.addWidget(self.ai_text)
@@ -416,10 +366,7 @@ class ResultsPanel(QWidget):
         ai_layout.addWidget(self.ai_card)
         self.main_layout.addWidget(self.ai_section)
 
-        # =====================================================
-        # QUICK TIPS
-        # =====================================================
-
+        # Quick Tips
         self.tips_section = QWidget()
         tips_layout = QVBoxLayout(self.tips_section)
         tips_layout.setContentsMargins(0, 0, 0, 0)
@@ -451,17 +398,7 @@ class ResultsPanel(QWidget):
         scroll.setWidget(self.content)
         layout.addWidget(scroll)
 
-    # ---------------------------------------------------------
-    # helpers
-    # ---------------------------------------------------------
-
     def _centered_page(self, widget) -> QWidget:
-        """
-        Wrap `widget` inside a page that centers it both vertically and
-        horizontally within the fixed-size icon stage. Every page has the
-        same rect, so no matter which one is currently the "active" child,
-        the visible widget appears at the exact same coordinates.
-        """
         holder = QWidget()
         outer = QHBoxLayout(holder)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -495,29 +432,18 @@ class ResultsPanel(QWidget):
 
         tip_label = QLabel(text)
         tip_label.setObjectName("tip_text")
-        # QLabel wrapping is toggled with setWordWrap(bool), NOT setWordWrapMode
-        # (that method belongs to QTextEdit / QTextBrowser).
         tip_label.setWordWrap(True)
         tip_layout.addWidget(tip_label, 1)
 
         return tip_card
 
     def _show_icon(self, which: str):
-        """
-        Toggle which of the three stage widgets is visible. All page
-        wrappers stay visible themselves — only the inner widget of each
-        page is hidden/shown, so the stage rect never changes size and
-        the visible element never drifts vertically.
-        """
-        self.idle_icon.setVisible(which == "idle")
-        self.spinner.setVisible(which == "spinner")
-        self.gauge.setVisible(which == "gauge")
-
-        # Ensure the page wrappers themselves remain visible so the
-        # stacked layout keeps rendering the fixed-size slot.
-        self._idle_page.setVisible(True)
-        self._spinner_page.setVisible(True)
-        self._gauge_page.setVisible(True)
+        if which == "idle":
+            self.icon_stack.setCurrentWidget(self._idle_page)
+        elif which == "spinner":
+            self.icon_stack.setCurrentWidget(self._spinner_page)
+        elif which == "gauge":
+            self.icon_stack.setCurrentWidget(self._gauge_page)
 
     def _set_reasons(self, reasons, accent: str):
         _clear_layout(self.reasons_layout)
@@ -530,7 +456,6 @@ class ResultsPanel(QWidget):
         for reason in reasons[:4]:
             row = QLabel()
             row.setObjectName("reason_row")
-            # QLabel: use setWordWrap(True), NOT setWordWrapMode.
             row.setWordWrap(True)
             row.setTextFormat(Qt.TextFormat.RichText)
             row.setText(f'<span style="color:{accent};">&#9679;</span>&nbsp;&nbsp;{_escape_html(reason)}')
@@ -538,13 +463,7 @@ class ResultsPanel(QWidget):
 
         self.reasons_container.setVisible(True)
 
-    # =========================================================
-    # ANIMATIONS
-    # =========================================================
-
     def setup_animations(self):
-
-        # -- elevation shadow on the hero card -----------------
         shadow = QGraphicsDropShadowEffect(self.result_card)
         shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
         shadow.setOffset(0, 14)
@@ -552,28 +471,20 @@ class ResultsPanel(QWidget):
         self.result_card.setGraphicsEffect(shadow)
         self.result_shadow = shadow
 
-        # -- smooth reveal for badge/subtitle/reasons ----------
-        # Parent the effect to info_wrapper so Qt owns/cleans it correctly.
         self.reveal_effect = QGraphicsOpacityEffect(self.info_wrapper)
         self.reveal_effect.setOpacity(1.0)
         self.info_wrapper.setGraphicsEffect(self.reveal_effect)
 
         self.reveal_animation = QPropertyAnimation(self.reveal_effect, b"opacity", self)
-        self.reveal_animation.setDuration(550)
-        self.reveal_animation.setStartValue(0.0)
+        self.reveal_animation.setDuration(400)
+        self.reveal_animation.setStartValue(0.2)
         self.reveal_animation.setEndValue(1.0)
         self.reveal_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        # -- loading ticker -------------------------------------
         self.loading_timer = QTimer(self)
         self.loading_timer.timeout.connect(self.animate_loading)
 
-    # =========================================================
-    # LOADING ANIMATION
-    # =========================================================
-
     def animate_loading(self):
-
         self.loading_dots += 1
         dots = "." * (self.loading_dots % 4)
         self.status_text.setText(f"Analyzing{dots}")
@@ -586,28 +497,14 @@ class ResultsPanel(QWidget):
         ]
         self.status_subtitle.setText(subtitles[self.loading_dots % len(subtitles)])
 
-        # gentle pulsing glow while work is in progress
         blur = self.SHADOW_BASE_BLUR + ((self.loading_dots % 4) * 6)
         self.result_shadow.setBlurRadius(blur)
 
-    # =========================================================
-    # RESULT ANIMATION
-    # =========================================================
-
     def animate_result_text(self):
-        # Stop cleanly, then run start→end. Leaving opacity==0 without a
-        # started animation used to cause the info_wrapper to visually
-        # collapse and the layout to jump on the 2nd analysis.
         self.reveal_animation.stop()
-        self.reveal_effect.setOpacity(0.0)
         self.reveal_animation.start()
 
-    # =========================================================
-    # PUBLIC METHODS
-    # =========================================================
-
     def show_loading(self):
-
         self.result_card.setProperty("status", "loading")
 
         self._show_icon("spinner")
@@ -620,13 +517,8 @@ class ResultsPanel(QWidget):
         self.confidence_pill.setVisible(False)
         self._set_reasons([], STATUS_STYLES["loading"]["accent"])
 
-        # Reset the info wrapper opacity so it's fully visible during loading
-        # (previous run may have left it mid-animation).
         self.reveal_animation.stop()
         self.reveal_effect.setOpacity(1.0)
-
-        # Reset the shadow to baseline so a stale pulsed value doesn't leak
-        # into the next result frame.
         self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
         self.ai_section.setVisible(False)
@@ -636,42 +528,27 @@ class ResultsPanel(QWidget):
         self.loading_timer.start(450)
 
         self.update_style()
-        QApplication.processEvents()
 
     def update_status(self, msg):
-
         self.status_text.setText(msg)
         self.status_subtitle.setText("Please wait...")
-
-        QApplication.processEvents()
 
     def update_results(self, result):
         self.loading_timer.stop()
         self.spinner.stop()
-
-        # Reset shadow blur to baseline
         self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
-        # SAFE EXTRACTION WITH FALLBACKS
         if result is None:
             result = {}
 
-        # Get detector output
-        detector = result.get("detector", {})
-        if detector is None:
-            detector = {}
-
+        detector = result.get("detector", {}) or {}
         detector_label = detector.get("label", "Moderate")
         detector_score = detector.get("score", 50)
         detector_reasons = detector.get("reasons", []) or []
         detector_confidence = detector.get("confidence", 0.7)
 
-        # Get final AI recommendation
-        final_recommendation = result.get("final_recommendation", "")
-        if final_recommendation is None:
-            final_recommendation = ""
+        final_recommendation = result.get("final_recommendation", "") or ""
 
-        # ── DETECT FALLBACK MESSAGES ──────────────────────────────
         fallback_phrases = [
             "Great conditions! Enjoy your workout today",
             "Moderate risk. Take it a bit easier",
@@ -681,7 +558,6 @@ class ResultsPanel(QWidget):
         ]
         is_fallback = any(phrase in final_recommendation for phrase in fallback_phrases)
 
-        # Determine display based on detector label
         if detector_label == "Unsafe":
             status_type = "danger"
         elif detector_label == "High":
@@ -696,7 +572,6 @@ class ResultsPanel(QWidget):
             str(detector_reasons[0])[:90] if detector_reasons else style["fallback_subtitle"]
         )
 
-        # Update UI
         self._show_icon("gauge")
         self.gauge.set_score(detector_score, style["accent"])
 
@@ -710,13 +585,10 @@ class ResultsPanel(QWidget):
 
         self._set_reasons(detector_reasons, style["accent"])
 
-        # ── AI ADVICE ──────────────────────────────────────────────
-        # If it's a fallback message or empty, show a clear "LLM unavailable" state
         if final_recommendation and len(final_recommendation) > 10 and not is_fallback:
             self.ai_text.setMarkdown(final_recommendation)
             self.ai_section.setVisible(True)
         else:
-            # Show a clear message that the LLM didn't respond
             if status_type != "error":
                 self.ai_text.setPlainText(
                     "🤖 AI Coach is currently unavailable.\n\n"
@@ -731,15 +603,9 @@ class ResultsPanel(QWidget):
 
         self.last_result = result
         self.update_style()
-
-        self.content.updateGeometry()
-        self.content.adjustSize()
-        QApplication.processEvents()
-
         self.animate_result_text()
 
     def show_error(self, msg):
-
         self.loading_timer.stop()
         self.spinner.stop()
         self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
@@ -759,28 +625,15 @@ class ResultsPanel(QWidget):
 
         self.ai_section.setVisible(False)
         self.update_style()
-
-        self.content.updateGeometry()
-        QApplication.processEvents()
-
         self.animate_result_text()
 
     def clear_insights(self):
-        """
-        Reset the panel back to its initial, pre-analysis state.
-        Called when:
-        - User clicks "Clear" or "Reset"
-        - A new analysis starts
-        - The user navigates away from the results panel
-        """
-        # ── Stop animations ──────────────────────────────────────
         self.loading_timer.stop()
         self.spinner.stop()
         self.reveal_animation.stop()
         self.reveal_effect.setOpacity(1.0)
         self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
-        # ── Reset to loading/idle state ──────────────────────────
         style = STATUS_STYLES["loading"]
 
         self._show_icon("idle")
@@ -791,41 +644,24 @@ class ResultsPanel(QWidget):
         self.status_text.setStyleSheet("")
         self.status_subtitle.setText(style["fallback_subtitle"])
 
-        # ── Clear metadata ──────────────────────────────────────
         self.confidence_pill.setVisible(False)
         self._set_reasons([], style["accent"])
 
-        # ── Clear AI section ────────────────────────────────────
         if hasattr(self.ai_text, 'clear'):
             self.ai_text.clear()
         else:
             self.ai_text.setText("")
         self.ai_section.setVisible(False)
 
-        # ── Reset gauge ──────────────────────────────────────────
         self.gauge.set_score(0, style["accent"])
-
-        # ── Clear stored result ──────────────────────────────────
         self.last_result = None
-
-        # ── Apply styles ─────────────────────────────────────────
         self.update_style()
 
-    # =========================================================
-    # STYLE UPDATE
-    # =========================================================
-
     def update_style(self):
-
         self.style().unpolish(self.result_card)
         self.style().polish(self.result_card)
 
-    # =========================================================
-    # STYLES
-    # =========================================================
-
     def apply_styles(self):
-
         def grad(colors):
             start, end = colors
             return (
@@ -839,7 +675,6 @@ class ResultsPanel(QWidget):
         )
 
         self.setStyleSheet(f"""
-
             QWidget {{
                 font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
             }}
@@ -854,10 +689,6 @@ class ResultsPanel(QWidget):
                 background: transparent;
             }}
 
-            /* ============================================
-               RESULT CARD
-            ============================================ */
-
             QFrame#result_card {{
                 border-radius: 32px;
                 border: 1px solid rgba(255,255,255,0.8);
@@ -865,28 +696,16 @@ class ResultsPanel(QWidget):
 
             {status_blocks}
 
-            /* ============================================
-               GLOW BAR
-            ============================================ */
-
             QFrame#glow_bar {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 {BRAND_START}, stop:1 {BRAND_END});
                 border-radius: 2px;
             }}
 
-            /* ============================================
-               ICON STAGE
-            ============================================ */
-
             QLabel#idle_icon {{
                 font-size: 60px;
                 padding: 6px 0;
             }}
-
-            /* ============================================
-               STATUS BADGE
-            ============================================ */
 
             QFrame#status_badge {{
                 background: rgba(255,255,255,0.8);
@@ -919,10 +738,6 @@ class ResultsPanel(QWidget):
                 letter-spacing: 0.3px;
             }}
 
-            /* ============================================
-               KEY FACTORS
-            ============================================ */
-
             QFrame#reasons_panel {{
                 background: rgba(255,255,255,0.55);
                 border: 1px solid rgba(255,255,255,0.8);
@@ -934,10 +749,6 @@ class ResultsPanel(QWidget):
                 font-weight: 500;
                 color: #1e293b;
             }}
-
-            /* ============================================
-               SECTION HEADERS
-            ============================================ */
 
             QLabel#section_title {{
                 font-size: 14px;
@@ -951,10 +762,6 @@ class ResultsPanel(QWidget):
                 font-weight: 500;
                 color: #64748b;
             }}
-
-            /* ============================================
-               AI CARD
-            ============================================ */
 
             QLabel#ai_avatar {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -983,10 +790,6 @@ class ResultsPanel(QWidget):
                 font-weight: 500;
             }}
 
-            /* ============================================
-               TIP CARDS
-            ============================================ */
-
             QFrame#tip_card {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 rgba(255,255,255,0.98), stop:1 rgba(248,250,252,0.96));
@@ -1008,5 +811,4 @@ class ResultsPanel(QWidget):
             QLabel {{
                 color: #0f172a;
             }}
-
         """)

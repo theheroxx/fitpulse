@@ -1,63 +1,55 @@
 [
   {
-    "id": "459ac1d7-e8e9-46f7-b2db-9282333c9cf5",
+    "id": "3a8b2abc-65bc-4788-81bd-e07487e4b949",
     "type": "analysis",
-    "created_at": "Jul 27, 2026  •  12:41 AM",
+    "created_at": "Jul 28, 2026  •  01:31 AM",
     "status": "SAFE",
-    "subtitle": "Good ED: Low Cardio generally safe",
+    "subtitle": "ML prediction (confidence: 0.99)",
     "reasons": [
-      "Good ED: Low Cardio generally safe",
-      "Low Fitness: Low Cardio recommended",
-      "Morning exercise generally safer"
+      "ML prediction (confidence: 0.99)"
     ],
-    "confidence": 0.9,
-    "score": 0,
-    "ai_recommendation": "28.0 years old, Healthy, Low fitness. You can do Low Cardio for 30.0 minutes in the Morning. Stay hydrated and warm up briefly. Have a safe workout. </think>\n\nHere's my advice: 28.0 years old, Healthy, Low fitness.",
+    "confidence": 0.9852914155055451,
+    "score": 20,
+    "ai_recommendation": "30 minutes low cardio in the morning is safe for you. Stay hydrated and warm up briefly before starting. </think>\n\nYou should do your low cardio as planned. 30 minutes is a good duration for you right now.",
     "experience_emoji": "😐",
     "raw_result": {
-      "ED": 31.59,
+      "ED": 0.17,
       "air_quality": {
-        "co": 251.0,
-        "no2": 18.0,
-        "o3": 127.0,
-        "pm10": 33.4,
-        "pm25": 16.1,
-        "so2": 46.5
+        "co": 200.0,
+        "no2": 25.0,
+        "o3": 25.0,
+        "pm10": 25.0,
+        "pm25": 25.0,
+        "so2": 25.0
       },
       "detailed_risk": null,
       "detector": {
-        "confidence": 0.9,
+        "confidence": 0.9852914155055451,
         "label": "Safe",
         "normalized_input": {
           "ActivityType": "Low Cardio",
-          "Age": 28,
+          "Age": 24,
           "DurationMins": 30,
-          "ED": 31.59,
+          "ED": 0.17,
           "FitnessLevel": "Low",
           "HealthCondition": "Healthy",
           "TimeOfDay": "Morning"
         },
         "reasons": [
-          "Good ED: Low Cardio generally safe",
-          "Low Fitness: Low Cardio recommended",
-          "Morning exercise generally safer"
+          "ML prediction (confidence: 0.99)"
         ],
-        "score": 0
+        "score": 20
       },
       "ed_math_model": {
-        "dominant_factors": [
-          "Temperature Stress"
-        ],
-        "interaction_score": 1.7,
-        "pollution_score": 0.04,
-        "risk_level": "Low",
-        "score": 31.59,
-        "temperature_score": 69.0
+        "dominant_factors": [],
+        "interaction_score": 0.0,
+        "pollution_score": 0.25,
+        "risk_level": "Very Low",
+        "score": 0.17,
+        "temperature_score": 0.0
       },
       "ed_recommendations": [
-        "ℹ️ Acceptable conditions. Exercise with caution.",
-        "👀 Monitor how you feel during activity.",
-        "🥵 High temperature! Exercise during cooler hours (morning/evening).",
+        "✅ Good conditions for outdoor exercise.",
         "\n🏋️ Recommended Exercises:",
         "  • {'id': 18, 'name': 'Burpees', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 10, 'calories_per_hour': 450, 'benefits': 'Full body exercise, builds explosive strength', 'precautions': 'Use proper form, modify if needed', 'contraindications': 'Joint issues, Heart condition', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
         "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
