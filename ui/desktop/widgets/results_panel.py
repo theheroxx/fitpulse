@@ -201,6 +201,12 @@ class ResultsPanel(QWidget):
     # results reset back to it so the card doesn't visually "grow".
     SHADOW_BASE_BLUR = 45
 
+    # Fixed vertical slot for the icon/spinner/gauge stage. Must be >= the
+    # tallest child (gauge = 104). Keeping it fixed prevents the row from
+    # collapsing when swapping widgets — which is what used to make the
+    # spinner appear lower than the idle icon and push content downward.
+    ICON_STAGE_SIZE = 112
+
     def __init__(self):
         super().__init__()
 
@@ -248,7 +254,7 @@ class ResultsPanel(QWidget):
         self.result_card.setMinimumHeight(320)
         # Keep the hero card's vertical footprint bound to its content so
         # it doesn't grow the second time results arrive.
-        self.result_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.result_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
         result_layout = QVBoxLayout(self.result_card)
         result_layout.setContentsMargins(36, 32, 36, 34)
@@ -261,8 +267,20 @@ class ResultsPanel(QWidget):
         result_layout.addWidget(self.glow_bar)
 
         # -- icon / spinner / gauge stage ----------------------
-        icon_row = QHBoxLayout()
-        icon_row.addStretch(1)
+        # Fixed-size stage so switching between idle icon / spinner / gauge
+        # never changes the row height (which used to make the spinner
+        # appear lower than the idle icon and push the rest of the card
+        # downward). All three widgets are centered inside the same rect;
+        # only visibility toggles.
+        self.icon_stage = QWidget()
+        self.icon_stage.setFixedHeight(self.ICON_STAGE_SIZE)
+        self.icon_stage.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
+        self.icon_stack = QStackedLayout(self.icon_stage)
+        self.icon_stack.setContentsMargins(0, 0, 0, 0)
+        # Overlay mode: all pages occupy the same rect simultaneously; we
+        # just toggle the visibility of the inner widget on each page.
+        self.icon_stack.setStackingMode(QStackedLayout.StackingMode.StackAll)
 
         self.idle_icon = QLabel(STATUS_STYLES["loading"]["icon"])
         self.idle_icon.setObjectName("idle_icon")
@@ -271,15 +289,18 @@ class ResultsPanel(QWidget):
         self.spinner = LoadingSpinner()
         self.gauge = ScoreGauge()
 
-        icon_row.addWidget(self.idle_icon)
-        icon_row.addWidget(self.spinner)
-        icon_row.addWidget(self.gauge)
-        icon_row.addStretch(1)
+        self._idle_page = self._centered_page(self.idle_icon)
+        self._spinner_page = self._centered_page(self.spinner)
+        self._gauge_page = self._centered_page(self.gauge)
+
+        self.icon_stack.addWidget(self._idle_page)
+        self.icon_stack.addWidget(self._spinner_page)
+        self.icon_stack.addWidget(self._gauge_page)
 
         self.spinner.setVisible(False)
         self.gauge.setVisible(False)
 
-        result_layout.addLayout(icon_row)
+        result_layout.addWidget(self.icon_stage)
 
         # -- info wrapper (badge, subtitle, meta, reasons) -----
         self.info_wrapper = QWidget()
@@ -430,6 +451,32 @@ class ResultsPanel(QWidget):
         scroll.setWidget(self.content)
         layout.addWidget(scroll)
 
+    # ---------------------------------------------------------
+    # helpers
+    # ---------------------------------------------------------
+
+    def _centered_page(self, widget) -> QWidget:
+        """
+        Wrap `widget` inside a page that centers it both vertically and
+        horizontally within the fixed-size icon stage. Every page has the
+        same rect, so no matter which one is currently the "active" child,
+        the visible widget appears at the exact same coordinates.
+        """
+        holder = QWidget()
+        outer = QHBoxLayout(holder)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addStretch(1)
+
+        inner = QVBoxLayout()
+        inner.setContentsMargins(0, 0, 0, 0)
+        inner.addStretch(1)
+        inner.addWidget(widget, 0, Qt.AlignmentFlag.AlignCenter)
+        inner.addStretch(1)
+
+        outer.addLayout(inner)
+        outer.addStretch(1)
+        return holder
+
     def _build_tip_card(self, icon: str, badge_color: str, text: str) -> QFrame:
         tip_card = QFrame()
         tip_card.setObjectName("tip_card")
@@ -456,9 +503,21 @@ class ResultsPanel(QWidget):
         return tip_card
 
     def _show_icon(self, which: str):
+        """
+        Toggle which of the three stage widgets is visible. All page
+        wrappers stay visible themselves — only the inner widget of each
+        page is hidden/shown, so the stage rect never changes size and
+        the visible element never drifts vertically.
+        """
         self.idle_icon.setVisible(which == "idle")
         self.spinner.setVisible(which == "spinner")
         self.gauge.setVisible(which == "gauge")
+
+        # Ensure the page wrappers themselves remain visible so the
+        # stacked layout keeps rendering the fixed-size slot.
+        self._idle_page.setVisible(True)
+        self._spinner_page.setVisible(True)
+        self._gauge_page.setVisible(True)
 
     def _set_reasons(self, reasons, accent: str):
         _clear_layout(self.reasons_layout)

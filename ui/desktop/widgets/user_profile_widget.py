@@ -10,8 +10,9 @@ import os
 class UserProfileWidget(QWidget):
     edit_clicked = Signal()
 
-    def __init__(self):
+    def __init__(self, main_container=None):
         super().__init__()
+        self.main_container = main_container  # ← Now properly set
         self.user_data = None
         self.setup_ui()
         self.load_user_data()
@@ -60,7 +61,7 @@ class UserProfileWidget(QWidget):
             border: none;
         """)
 
-        # USERNAME LABEL (NEW)
+        # USERNAME LABEL
         self.username_label = QLabel("")
         self.username_label.setFont(QFont("Segoe UI", 11))
         self.username_label.setStyleSheet("""
@@ -235,36 +236,39 @@ class UserProfileWidget(QWidget):
     # LOAD USER DATA
     # =============================================================
     def load_user_data(self):
-        """Load and display user data from database"""
+        """Load user data from database and update UI"""
         try:
-            self.user_data = get_user()
-
-            if self.user_data:
-                # Set username
-                username = self.user_data.get("username")
-                if username:
-                    self.username_label.setText(f"@{username}")
-                else:
-                    self.username_label.setText("Guest User")
-
-                self.age_label.setText(
-                    str(self.user_data.get("age", "--"))
-                )
-
-                self.health_label.setText(
-                    self.user_data.get("health_condition", "--")
-                )
-
-                city_name = self.user_data.get("city_name")
-                self.city_label.setText(city_name if city_name else "Not set")
-
-                self.fitness_label.setText(
-                    self.user_data.get("fitness_level", "--")
-                )
-
+            from database.auth import get_user_by_id
+            from database.db import get_user
+            
+            # Get current user from main container
+            if self.main_container and self.main_container.current_user:
+                user_id = self.main_container.current_user.get("id")
+                if user_id:
+                    user = get_user_by_id(user_id)
+                    if user:
+                        # ─── Set username ──────────────────────────
+                        username = user.get("username", "Guest User")
+                        self.username_label.setText(username)
+                        self.age_label.setText(str(user.get("age", "Not set")))
+                        self.health_label.setText(user.get("health_condition", "Not set"))
+                        self.fitness_label.setText(user.get("fitness_level", "Not set"))
+                        # Try to get city
+                        city = user.get("city_name") or user.get("city") or "Not set"
+                        self.city_label.setText(city)
+                        return
+            
+            # Fallback: try to get any user
+            user = get_user()
+            if user:
+                self.username_label.setText(user.get("username", "Guest User"))
+                self.age_label.setText(str(user.get("age", "Not set")))
+                self.health_label.setText(user.get("health_condition", "Not set"))
+                self.fitness_label.setText(user.get("fitness_level", "Not set"))
+                city = user.get("city_name") or user.get("city") or "Not set"
+                self.city_label.setText(city)
             else:
                 self.set_default_values()
-
         except Exception as e:
             print(f"Error loading user data: {e}")
             self.set_default_values()

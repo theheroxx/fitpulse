@@ -44,7 +44,7 @@ def save_profile(data):
 
 
 # =============================================================================
-# UPDATE PROFILE (for editing existing user)
+# UPDATE PROFILE (for editing existing user) - FIXED
 # =============================================================================
 
 def update_profile(data):
@@ -73,18 +73,18 @@ def update_profile(data):
             # Get the user ID from existing record
             user_id = existing_user["id"]
             
-            # Update using save_user (it will update since user exists)
+            # ─── FIX: Use %s instead of ? for PostgreSQL ────────
             from database.db import get_db
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users
-                    SET age = ?,
-                        health_condition = ?,
-                        fitness_level = ?,
-                        city_id = ?,
+                    SET age = %s,
+                        health_condition = %s,
+                        fitness_level = %s,
+                        city_id = %s,
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
+                    WHERE id = %s
                 """, (
                     data.get("Age", 25),
                     data.get("HealthCondition", "Healthy"),
@@ -92,6 +92,7 @@ def update_profile(data):
                     city_id,
                     user_id
                 ))
+                conn.commit()
             
             print(f"✅ Profile updated successfully (ID: {user_id})")
             return user_id

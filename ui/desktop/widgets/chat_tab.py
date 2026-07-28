@@ -220,7 +220,8 @@ class ChatTab(QWidget):
         self.worker = None
         self.rag_worker = None
         self.detailed_mode = False
-        self.status_message = None  # reference to the "Retrieving..." message
+        self.history_mode = False  # ← NEW: history toggle state
+        self.status_message = None
         self.setup_ui()
 
     def setup_ui(self):
@@ -253,49 +254,72 @@ class ChatTab(QWidget):
         self.add_welcome()
 
         input_wrapper = QWidget()
-        input_wrapper.setFixedHeight(140)
+        input_wrapper.setFixedHeight(170)  # Increased height for new toggle
         input_wrapper.setStyleSheet("QWidget { background: white; border-top: 1px solid #e2e8f0; }")
 
         main_input_layout = QVBoxLayout(input_wrapper)
         main_input_layout.setContentsMargins(20, 12, 20, 12)
-        main_input_layout.setSpacing(12)
+        main_input_layout.setSpacing(8)
 
+        # ─── Toggle row ────────────────────────────────────────────
         toggle_layout = QHBoxLayout()
         toggle_layout.setSpacing(12)
 
+        # Detailed Answer toggle
         self.detail_toggle = QPushButton("🔬 Detailed Answer")
         self.detail_toggle.setCheckable(True)
         self.detail_toggle.setCursor(Qt.PointingHandCursor)
-        self.detail_toggle.setFixedHeight(36)
+        self.detail_toggle.setFixedHeight(32)
         self.detail_toggle.setStyleSheet("""
             QPushButton {
-                background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 18px;
-                padding: 0 16px; color: #475569; font-size: 12px; font-weight: 500;
+                background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px;
+                padding: 0 14px; color: #475569; font-size: 11px; font-weight: 500;
             }
             QPushButton:checked {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6366f1, stop:1 #8b5cf6);
                 color: white; border: none;
             }
-            QPushButton:hover { background: #e2e8f0; }
+            QPushButton:hover:!checked { background: #e2e8f0; }
         """)
         self.detail_toggle.toggled.connect(self.on_detailed_toggle)
 
+        # ─── NEW: Read History toggle ─────────────────────────────
+        self.history_toggle = QPushButton("📜 Read History")
+        self.history_toggle.setCheckable(True)
+        self.history_toggle.setCursor(Qt.PointingHandCursor)
+        self.history_toggle.setFixedHeight(32)
+        self.history_toggle.setStyleSheet("""
+            QPushButton {
+                background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 16px;
+                padding: 0 14px; color: #475569; font-size: 11px; font-weight: 500;
+            }
+            QPushButton:checked {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #8b5cf6, stop:1 #6366f1);
+                color: white; border: none;
+            }
+            QPushButton:hover:!checked { background: #e2e8f0; }
+        """)
+        self.history_toggle.setToolTip("Include user's workout/diet history in the response")
+        self.history_toggle.toggled.connect(self.on_history_toggle)
+
         tooltip_label = QLabel("ℹ️")
         tooltip_label.setCursor(Qt.PointingHandCursor)
-        tooltip_label.setToolTip("Detailed answers give more accurate, science-based responses.")
+        tooltip_label.setToolTip("Detailed answers use medical context. History includes your past records.")
         tooltip_label.setStyleSheet("color: #94a3b8; font-size: 14px;")
 
         toggle_layout.addWidget(self.detail_toggle)
+        toggle_layout.addWidget(self.history_toggle)
         toggle_layout.addWidget(tooltip_label)
         toggle_layout.addStretch()
         main_input_layout.addLayout(toggle_layout)
 
+        # ─── Input row ─────────────────────────────────────────────
         input_layout = QHBoxLayout()
         input_layout.setSpacing(14)
 
         self.input = QLineEdit()
         self.input.setPlaceholderText("Ask something about your fitness analysis...")
-        self.input.setMinimumHeight(52)
+        self.input.setMinimumHeight(48)
         self.input.setStyleSheet("""
             QLineEdit {
                 background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px;
@@ -308,11 +332,12 @@ class ChatTab(QWidget):
 
         self.send_btn = QPushButton("Send")
         self.send_btn.setCursor(Qt.PointingHandCursor)
-        self.send_btn.setFixedSize(90, 52)
+        self.send_btn.setFixedSize(80, 48)
         self.send_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6366f1, stop:1 #8b5cf6);
-                color: white; border: none; border-radius: 16px; font-size: 13px; font-weight: 700;
+                color: white; border: none; border-radius: 16px;
+                font-size: 13px; font-weight: 700;
             }
             QPushButton:hover { background: #5855eb; }
             QPushButton:pressed { padding-top: 2px; }
@@ -330,6 +355,13 @@ class ChatTab(QWidget):
             self.add_message("assistant", "🔬 **Detailed Answer Mode Enabled**")
         else:
             self.add_message("assistant", "⚡ **Standard Mode Enabled**")
+
+    def on_history_toggle(self, checked):
+        self.history_mode = checked
+        if checked:
+            self.add_message("assistant", "📜 **History mode enabled** - I'll use your past workouts and diet records in my responses.")
+        else:
+            self.add_message("assistant", "📜 **History mode disabled** - I'll only use your current profile.")
 
     def add_welcome(self):
         self.add_message("assistant", "👋 Hi! I'm your AI fitness coach.\n\nRun an analysis first, then ask me questions.")
@@ -352,7 +384,7 @@ class ChatTab(QWidget):
         self.messages.append(wrapper)
         self.chat_layout.addWidget(wrapper)
         QTimer.singleShot(120, self.scroll_to_bottom)
-        return wrapper  # return the wrapper so we can remove it later
+        return wrapper
 
     def scroll_to_bottom(self):
         scrollbar = self.scroll_area.verticalScrollBar()
@@ -368,9 +400,7 @@ class ChatTab(QWidget):
         self.context = result
 
     def _remove_status_message(self):
-        """Remove the 'Retrieving medical context...' status message."""
         if self.status_message:
-            # Remove from layout and delete
             self.chat_layout.removeWidget(self.status_message)
             self.status_message.deleteLater()
             self.status_message = None
@@ -390,7 +420,6 @@ class ChatTab(QWidget):
             self.rag_worker.wait(3000)
             self.rag_worker = None
 
-        # Remove any lingering status message
         self._remove_status_message()
 
         self.input.clear()
@@ -406,7 +435,11 @@ class ChatTab(QWidget):
             detector_output = {"label": "Safe"}
 
         if not self.detailed_mode:
-            self.worker = ChatWorker(user_data, detector_output, question, detailed_mode=False)
+            self.worker = ChatWorker(
+                user_data, detector_output, question,
+                detailed_mode=False,
+                include_history=self.history_mode
+            )
             self.worker.response_ready.connect(self.on_response_received)
             self.worker.error.connect(self.on_error)
             self.worker.start()
@@ -414,11 +447,12 @@ class ChatTab(QWidget):
 
         # Detailed mode — add status message and start RAG
         status_wrapper = self.add_message("assistant", "🔍 Retrieving medical context...", animated=False)
-        self.status_message = status_wrapper  # store reference
+        self.status_message = status_wrapper
 
         self._pending_user_data = user_data
         self._pending_detector_output = detector_output
         self._pending_question = question
+        self._pending_history = self.history_mode
         health = user_data.get('HealthCondition', 'Unknown')
         activity = user_data.get('ActivityType', 'Unknown')
         self.rag_worker = RAGWorker(question, health, activity)
@@ -427,7 +461,7 @@ class ChatTab(QWidget):
         self.rag_worker.start()
 
     def on_rag_complete(self, rag_context):
-        self._remove_status_message()  # remove the "Retrieving..." message
+        self._remove_status_message()
 
         if self.rag_worker:
             self.rag_worker.quit()
@@ -439,14 +473,16 @@ class ChatTab(QWidget):
             detector_output=self._pending_detector_output,
             query=self._pending_question,
             detailed_mode=True,
-            rag_context=rag_context
+            rag_context=rag_context,
+            # pyrefly: ignore [unexpected-keyword]
+            include_history=self._pending_history
         )
         self.worker.response_ready.connect(self.on_response_received)
         self.worker.error.connect(self.on_error)
         self.worker.start()
 
     def on_rag_error(self, error_msg):
-        self._remove_status_message()  # remove the "Retrieving..." message
+        self._remove_status_message()
 
         print(f"RAG error: {error_msg}")
         if self.rag_worker:
@@ -460,7 +496,9 @@ class ChatTab(QWidget):
             detector_output=self._pending_detector_output,
             query=self._pending_question,
             detailed_mode=True,
-            rag_context=None
+            rag_context=None,
+            # pyrefly: ignore [unexpected-keyword]
+            include_history=self._pending_history
         )
         self.worker.response_ready.connect(self.on_response_received)
         self.worker.error.connect(self.on_error)
@@ -470,7 +508,6 @@ class ChatTab(QWidget):
         if response and response.strip():
             self.add_message("assistant", response)
         else:
-            # If empty response, show a fallback
             self.add_message("assistant", "I'm having trouble generating a response right now. Please try again.")
 
         self.send_btn.setEnabled(True)
