@@ -1,10 +1,15 @@
 """
-Query Builder for RAG System - OFFLINE VERSION
-Builds structured queries and formats RAG responses without an LLM.
+Query Builder for RAG System - OFFLINE & ISOLATED VERSION
+Builds structured queries and safely formats RAG responses without an LLM.
+Uses process isolation to prevent native C++/Rust crashes in Qt worker threads.
 """
 
 from typing import Dict, Any, List, Optional
 import logging
+import subprocess
+import json
+import sys
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +20,8 @@ def build_query(user_input: Dict[str, Any], detector_output: Dict[str, Any]) -> 
     Combines user profile, health data, and risk assessment into a searchable string.
     
     Args:
-        user_input: User profile data (Age, HealthCondition, FitnessLevel, ActivityType, DurationMins)
-        detector_output: Risk detector output (label, reasons)
+        user_input: User profile data (Age, HealthCondition, FitnessLevel, ActivityType, DurationMins, etc.)
+        detector_output: Risk detector output (label, reasons, warnings)
     
     Returns:
         Pipe-separated query string for vector search
@@ -28,11 +33,15 @@ def build_query(user_input: Dict[str, Any], detector_output: Dict[str, Any]) -> 
     
     query_parts = []
     
-    # User profile fields
+    # 1. User profile fields
     age = user_input.get('Age', 'unknown')
     if age and age != 'unknown':
         query_parts.append(f"Age {age}")
     
+    gender = user_input.get('Gender', 'unknown')
+    if gender and gender != 'unknown':
+        query_parts.append(f"Gender {gender}")
+
     health = user_input.get('HealthCondition', 'unknown')
     if health and health != 'unknown':
         query_parts.append(f"Health condition: {health}")
@@ -49,17 +58,29 @@ def build_query(user_input: Dict[str, Any], detector_output: Dict[str, Any]) -> 
     if duration is not None and duration != 'unknown':
         query_parts.append(f"Duration: {duration} minutes")
     
-    # Risk assessment
+    weather = user_input.get('Weather', 'unknown')
+    if weather and weather != 'unknown':
+        query_parts.append(f"Environment: {weather}")
+
+    goals = user_input.get('Goals', 'unknown')
+    if goals and goals != 'unknown':
+        query_parts.append(f"Goals: {goals}")
+
+    # 2. Risk assessment & detector output
     risk_label = detector_output.get('label', None)
     if risk_label:
         query_parts.append(f"Risk level: {risk_label}")
     
-    # Risk reasons (top 3 for better context)
     reasons = detector_output.get('reasons', [])
     if reasons:
-        reasons_str = ', '.join(reasons[:3])
+        reasons_str = ', '.join(reasons[:3]) if isinstance(reasons, list) else str(reasons)
         query_parts.append(f"Risk factors: {reasons_str}")
-    
+
+    warnings = detector_output.get('warnings', [])
+    if warnings:
+        warnings_str = ', '.join(warnings[:2]) if isinstance(warnings, list) else str(warnings)
+        query_parts.append(f"Safety warnings: {warnings_str}")
+
     # If no meaningful parts, return a generic fitness query
     if not query_parts:
         return "fitness exercise safety recommendations"
@@ -76,6 +97,9 @@ def get_rag_context(
     Get comprehensive RAG context by combining structured profile data
     with natural language user query.
     
+    Uses subprocess process isolation to shield the PySide6 main process
+    from native Rust/C++ threading panics (0xC0000005).
+    
     Args:
         user_input: User profile data
         detector_output: Risk detector output
@@ -84,54 +108,53 @@ def get_rag_context(
     Returns:
         Dict with documents, raw_results, intent, and error fields
     """
-    try:
-        # Lazy import to avoid circular dependency
-        from rag.retriever import retrieve_context
-        
-        # Build structured search query
-        search_query = build_query(user_input, detector_output)
-        
-        # Append user's natural language question with higher weight
-        if user_query and user_query.strip():
-            search_query += f" | Question: {user_query.strip()}"
-        
-        # If query is empty, return empty context
-        if not search_query.strip():
-            logger.warning("Empty search query generated")
-            return {
-                'documents': [[]],
-                'raw_results': {},
-                'intent': 'unknown',
-                'error': 'Empty query'
-            }
-        
-        logger.info(f"Retrieving context for query: {search_query[:200]}...")
-        
-        # Retrieve from vector store
-        context = retrieve_context(search_query)
-        
-        # Add metadata about the search
-        context['search_query'] = search_query
-        context['has_user_query'] = bool(user_query and user_query.strip())
-        
-        return context
+    # Build structured search query
+    search_query = build_query(user_input, detector_output)
     
-    except ImportError as e:
-        logger.error(f"Failed to import retriever: {e}")
+    # Append user's natural language question
+    if user_query and user_query.strip():
+        search_query += f" | Question: {user_query.strip()}"
+    
+    # If query is empty, return empty context
+    if not search_query.strip():
+        logger.warning("Empty search query generated")
         return {
             'documents': [[]],
             'raw_results': {},
             'intent': 'unknown',
-            'error': f'Import error: {str(e)}'
+            'error': 'Empty query'
         }
+    
+    logger.info(f"Retrieving context for query: {search_query[:200]}...")
+    
+    # Execute retrieval inside isolated subprocess wrapper
+    try:
+        script_path = os.path.join(os.path.dirname(__file__), "isolated_runner.py")
+        result = subprocess.run(
+            [sys.executable, script_path, search_query],
+            capture_output=True,
+            text=True,
+            timeout=12
+        )
+        
+        if result.returncode == 0 and result.stdout.strip():
+            context = json.loads(result.stdout.strip())
+            context['search_query'] = search_query
+            context['has_user_query'] = bool(user_query and user_query.strip())
+            return context
+        else:
+            logger.warning(f"Subprocess non-zero exit or empty response: {result.stderr}")
+
     except Exception as e:
-        logger.error(f"Failed to get RAG context: {e}", exc_info=True)
-        return {
-            'documents': [[]],
-            'raw_results': {},
-            'intent': 'unknown',
-            'error': str(e)
-        }
+        logger.error(f"Failed to get RAG context via isolated subprocess: {e}", exc_info=True)
+    
+    # Fallback response dict
+    return {
+        'documents': [[]],
+        'raw_results': {},
+        'intent': 'unknown',
+        'error': 'Execution fallback'
+    }
 
 
 def _extract_documents(context: Dict[str, Any]) -> List[str]:
@@ -152,6 +175,23 @@ def _extract_documents(context: Dict[str, Any]) -> List[str]:
         return []
     except (IndexError, TypeError, AttributeError):
         return []
+
+
+def format_context_for_prompt(context: Dict[str, Any], max_docs: int = 4) -> str:
+    """Format retrieved context into a structured block for LLM integration (if enabled)."""
+    docs = _extract_documents(context)
+    if not docs:
+        return ""
+    
+    intent = context.get('intent', 'exercises')
+    formatted = f"\n=== RETRIEVED KNOWLEDGE BASE (Category: {intent.upper()}) ===\n"
+    
+    for i, doc in enumerate(docs[:max_docs], 1):
+        clean_doc = doc.strip().replace("\n\n", "\n")
+        formatted += f"\n[Reference {i}]:\n{clean_doc}\n"
+        
+    formatted += "===============================================================\n"
+    return formatted
 
 
 def generate_rag_response(context: Dict[str, Any], user_query: str = "") -> str:
@@ -218,7 +258,6 @@ def generate_rag_response(context: Dict[str, Any], user_query: str = "") -> str:
         
         # Truncate very long documents for readability
         if len(doc) > 400:
-            # Try to break at a sentence boundary
             truncated = doc[:400]
             last_period = truncated.rfind('.')
             last_newline = truncated.rfind('\n')

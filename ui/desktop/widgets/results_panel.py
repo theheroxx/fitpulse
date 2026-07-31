@@ -80,40 +80,23 @@ def _clear_layout(layout):
 
 
 class ScoreGauge(QWidget):
-    """Animated ring gauge that visualises the detector's 0-100 score."""
+    """Simple ring gauge that visualises the detector's 0-100 score."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(104, 104)
         self._display_value = 0.0
-        self._target_value = 0.0
         self._ring_color = QColor(BRAND_START)
 
-        self._animation = QPropertyAnimation(self, b"ringValue")
-        self._animation.setDuration(900)
-        self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-    def _get_ring_value(self):
-        return self._display_value
-
-    def _set_ring_value(self, value):
-        self._display_value = value
-        self.update()
-
-    ringValue = Property(float, _get_ring_value, _set_ring_value)
-
     def set_score(self, value, color: str):
-        """Animate the ring to a new 0-100 score using the given accent color."""
+        """Set score directly without heavy property animation."""
         try:
             value = float(value)
         except (TypeError, ValueError):
             value = 0.0
-        self._target_value = max(0.0, min(100.0, value))
+        self._display_value = max(0.0, min(100.0, value))
         self._ring_color = QColor(color)
-        self._animation.stop()
-        self._animation.setStartValue(self._display_value)
-        self._animation.setEndValue(self._target_value)
-        self._animation.start()
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -155,7 +138,7 @@ class LoadingSpinner(QWidget):
         self._timer.timeout.connect(self._advance)
 
     def start(self):
-        self._timer.start(16)
+        self._timer.start(30)
 
     def stop(self):
         self._timer.stop()
@@ -187,7 +170,6 @@ class LoadingSpinner(QWidget):
 
 class ResultsPanel(QWidget):
 
-    SHADOW_BASE_BLUR = 45
     ICON_STAGE_SIZE = 112
 
     def __init__(self):
@@ -195,15 +177,28 @@ class ResultsPanel(QWidget):
 
         self.last_result = None
         self.loading_dots = 0
-        self.rotation_angle = 0
+        self.is_fullscreen = False
 
         self.setup_ui()
         self.apply_styles()
-        self.setup_animations()
+        self.setup_timer()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+
+        # Header Control Bar for Fullscreen Toggle
+        header_bar = QHBoxLayout()
+        header_bar.setContentsMargins(12, 8, 12, 0)
+        header_bar.addStretch()
+
+        self.fullscreen_btn = QPushButton("⛶ Full Screen")
+        self.fullscreen_btn.setObjectName("fullscreen_btn")
+        self.fullscreen_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
+        header_bar.addWidget(self.fullscreen_btn)
+
+        layout.addLayout(header_bar)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -215,7 +210,7 @@ class ResultsPanel(QWidget):
         self.content.setObjectName("results_content")
 
         self.main_layout = QVBoxLayout(self.content)
-        self.main_layout.setContentsMargins(28, 28, 28, 28)
+        self.main_layout.setContentsMargins(28, 16, 28, 28)
         self.main_layout.setSpacing(26)
 
         # Hero Card
@@ -398,6 +393,26 @@ class ResultsPanel(QWidget):
         scroll.setWidget(self.content)
         layout.addWidget(scroll)
 
+    def toggle_fullscreen(self):
+        """Toggle expanding this panel to take over the parent view."""
+        parent_layout = self.parentWidget().layout() if self.parentWidget() else None
+        if not parent_layout:
+            return
+
+        self.is_fullscreen = not self.is_fullscreen
+        
+        # Show/Hide sibling widgets in the container
+        for i in range(parent_layout.count()):
+            item = parent_layout.itemAt(i)
+            widget = item.widget()
+            if widget and widget is not self:
+                widget.setVisible(not self.is_fullscreen)
+
+        if self.is_fullscreen:
+            self.fullscreen_btn.setText("🗗 Restore View")
+        else:
+            self.fullscreen_btn.setText("⛶ Full Screen")
+
     def _centered_page(self, widget) -> QWidget:
         holder = QWidget()
         outer = QHBoxLayout(holder)
@@ -463,24 +478,7 @@ class ResultsPanel(QWidget):
 
         self.reasons_container.setVisible(True)
 
-    def setup_animations(self):
-        shadow = QGraphicsDropShadowEffect(self.result_card)
-        shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
-        shadow.setOffset(0, 14)
-        shadow.setColor(QColor(37, 99, 235, 35))
-        self.result_card.setGraphicsEffect(shadow)
-        self.result_shadow = shadow
-
-        self.reveal_effect = QGraphicsOpacityEffect(self.info_wrapper)
-        self.reveal_effect.setOpacity(1.0)
-        self.info_wrapper.setGraphicsEffect(self.reveal_effect)
-
-        self.reveal_animation = QPropertyAnimation(self.reveal_effect, b"opacity", self)
-        self.reveal_animation.setDuration(400)
-        self.reveal_animation.setStartValue(0.2)
-        self.reveal_animation.setEndValue(1.0)
-        self.reveal_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-
+    def setup_timer(self):
         self.loading_timer = QTimer(self)
         self.loading_timer.timeout.connect(self.animate_loading)
 
@@ -497,13 +495,6 @@ class ResultsPanel(QWidget):
         ]
         self.status_subtitle.setText(subtitles[self.loading_dots % len(subtitles)])
 
-        blur = self.SHADOW_BASE_BLUR + ((self.loading_dots % 4) * 6)
-        self.result_shadow.setBlurRadius(blur)
-
-    def animate_result_text(self):
-        self.reveal_animation.stop()
-        self.reveal_animation.start()
-
     def show_loading(self):
         self.result_card.setProperty("status", "loading")
 
@@ -516,10 +507,6 @@ class ResultsPanel(QWidget):
 
         self.confidence_pill.setVisible(False)
         self._set_reasons([], STATUS_STYLES["loading"]["accent"])
-
-        self.reveal_animation.stop()
-        self.reveal_effect.setOpacity(1.0)
-        self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
         self.ai_section.setVisible(False)
         self.tips_section.setVisible(True)
@@ -536,7 +523,6 @@ class ResultsPanel(QWidget):
     def update_results(self, result):
         self.loading_timer.stop()
         self.spinner.stop()
-        self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
         if result is None:
             result = {}
@@ -603,12 +589,10 @@ class ResultsPanel(QWidget):
 
         self.last_result = result
         self.update_style()
-        self.animate_result_text()
 
     def show_error(self, msg):
         self.loading_timer.stop()
         self.spinner.stop()
-        self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
         style = STATUS_STYLES["error"]
 
@@ -625,14 +609,10 @@ class ResultsPanel(QWidget):
 
         self.ai_section.setVisible(False)
         self.update_style()
-        self.animate_result_text()
 
     def clear_insights(self):
         self.loading_timer.stop()
         self.spinner.stop()
-        self.reveal_animation.stop()
-        self.reveal_effect.setOpacity(1.0)
-        self.result_shadow.setBlurRadius(self.SHADOW_BASE_BLUR)
 
         style = STATUS_STYLES["loading"]
 
@@ -684,13 +664,28 @@ class ResultsPanel(QWidget):
                     stop:0 #f7faff, stop:1 #eef4ff);
             }}
 
+            QPushButton#fullscreen_btn {{
+                background: #ffffff;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                padding: 6px 14px;
+                font-size: 12px;
+                font-weight: 600;
+                color: #334155;
+            }}
+
+            QPushButton#fullscreen_btn:hover {{
+                background: #f1f5f9;
+                color: #0f172a;
+            }}
+
             QScrollArea {{
                 border: none;
                 background: transparent;
             }}
 
             QFrame#result_card {{
-                border-radius: 32px;
+                border-radius: 24px;
                 border: 1px solid rgba(255,255,255,0.8);
             }}
 

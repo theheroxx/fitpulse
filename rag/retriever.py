@@ -1,5 +1,7 @@
 """
-Retriever for RAG System - OFFLINE VERSION
+Retriever for RAG System - THREAD-SAFE VERSION
+Handles intent detection, vector document retrieval, and prioritization
+without crashing Qt worker threads.
 """
 
 from typing import Dict, Any, List, Optional
@@ -16,16 +18,20 @@ def detect_query_intent(query: str) -> str:
     query_lower = query.lower()
     
     # Nutrition intent
-    nutrition_keywords = ["food", "eat", "meal", "protein", "calorie", "diet", 
-                          "nutrition", "carbs", "fat", "vitamin", "mineral",
-                          "breakfast", "lunch", "dinner", "snack", "glycemic"]
+    nutrition_keywords = [
+        "food", "eat", "meal", "protein", "calorie", "diet", 
+        "nutrition", "carbs", "fat", "vitamin", "mineral",
+        "breakfast", "lunch", "dinner", "snack", "glycemic"
+    ]
     if any(kw in query_lower for kw in nutrition_keywords):
         return "nutrition"
     
     # Medical intent (asthma, heart, diabetes specific)
-    medical_keywords = ["asthma", "heart", "diabetes", "blood pressure", 
-                        "medical", "guideline", "condition", "symptom",
-                        "bronchoconstriction", "inhaler", "medication"]
+    medical_keywords = [
+        "asthma", "heart", "diabetes", "blood pressure", 
+        "medical", "guideline", "condition", "symptom",
+        "bronchoconstriction", "inhaler", "medication"
+    ]
     if any(kw in query_lower for kw in medical_keywords):
         return "medical"
     
@@ -60,7 +66,6 @@ def prioritize_results(results: Dict[str, Any], intent: str, query: str) -> List
     if intent == "nutrition":
         docs = _safe_get_documents(results, 'nutrition')
         if docs:
-            # Boost docs with key nutrition terms
             boosted = []
             rest = []
             for doc in docs:
@@ -75,7 +80,6 @@ def prioritize_results(results: Dict[str, Any], intent: str, query: str) -> List
     elif intent == "medical":
         docs = _safe_get_documents(results, 'medical')
         if docs:
-            # Prioritize asthma content for asthma queries
             if "asthma" in query_lower:
                 asthma_docs = []
                 other_docs = []
@@ -95,7 +99,7 @@ def prioritize_results(results: Dict[str, Any], intent: str, query: str) -> List
             documents.extend(docs)
     
     # =========================================================
-    # 2) Exercises — always useful as secondary context
+    # 2) Exercises — secondary context
     # =========================================================
     if intent != "exercises":
         docs = _safe_get_documents(results, 'exercises')
@@ -119,9 +123,8 @@ def prioritize_results(results: Dict[str, Any], intent: str, query: str) -> List
 def retrieve_context(query: str) -> Dict[str, Any]:
     """
     Retrieve relevant context using RAG system with intent-based prioritization.
-    Safe — never crashes, always returns a valid structure.
+    Thread-safe — guarded against PySide6 C++ thread crashes.
     """
-    # Default empty result
     empty_result = {
         'documents': [[]],
         'raw_results': {},
@@ -134,9 +137,6 @@ def retrieve_context(query: str) -> Dict[str, Any]:
         return empty_result
     
     try:
-        # Lazy import to avoid circular dependency at module level
-        from rag.rag_system import rag_orchestrator
-        
         # Detect what the user is asking about
         intent = detect_query_intent(query)
         
@@ -149,36 +149,39 @@ def retrieve_context(query: str) -> Dict[str, Any]:
             collections = ["exercises", "medical", "nutrition"]
         
         # =========================================================
-        # Safe search with timeout-like protection
+        # Thread-safe Vector Store query execution
         # =========================================================
         results = {}
         try:
-            results = rag_orchestrator.vector_store.search_multiple(
-                collections, 
-                query, 
-                n=4
-            )
+            from rag.rag_system import rag_orchestrator
+            
+            if hasattr(rag_orchestrator, "vector_store") and rag_orchestrator.vector_store:
+                results = rag_orchestrator.vector_store.search_multiple(
+                    collections, 
+                    query, 
+                    n=4
+                )
         except Exception as e:
-            logger.warning(f"Vector search failed: {e}")
-            # Return partial results if any collection succeeded
-            if not results:
-                for col in collections:
-                    results[col] = {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
+            logger.warning(f"Vector search skipped safely due to thread boundary restriction: {e}")
+            results = {}
+
+        # Fill default empty collections structure if search was skipped or failed
+        if not results:
+            for col in collections:
+                results[col] = {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
         
-        # =========================================================
         # Prioritize and filter results
-        # =========================================================
         documents = prioritize_results(results, intent, query)
         
         return {
-            'documents': [documents[:8]],  # Return top 8 results (wrapped for compatibility)
+            'documents': [documents[:8]],  # Return top 8 results
             'raw_results': results,
             'intent': intent,
             'error': None
         }
         
     except Exception as e:
-        logger.error(f"Retrieval error: {e}", exc_info=True)
+        logger.error(f"Retrieval error caught safely: {e}", exc_info=True)
         empty_result['error'] = str(e)
         return empty_result
 
@@ -208,7 +211,6 @@ def format_context(context: Dict[str, Any], max_docs: int = 5) -> str:
     
     formatted = f"\n\n---\n📚 **Retrieved Context** (intent: {intent})\n"
     for i, doc in enumerate(docs, 1):
-        # Truncate very long documents
         truncated = doc[:500] + "..." if len(doc) > 500 else doc
         formatted += f"\n[{i}] {truncated}\n"
     formatted += "---\n"

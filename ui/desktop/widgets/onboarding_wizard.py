@@ -11,11 +11,13 @@ class OnboardingWizard(QDialog):
         super().__init__()
 
         self.setWindowTitle("Edit Profile" if edit_mode else "Welcome")
-        self.setFixedSize(520, 460)
+        self.setFixedSize(520, 520)  # Slightly taller for bio
 
         self.edit_mode = edit_mode
         self.data = {}
         self.step_index = 0
+        self.has_existing = False
+        self.existing_data = {}
 
         self.stack = QStackedWidget()
 
@@ -24,6 +26,7 @@ class OnboardingWizard(QDialog):
             self.step_health(),
             self.step_city(),
             self.step_fitness(),
+            self.step_bio(),        # ← NEW bio step
             self.step_done()
         ]
 
@@ -37,7 +40,7 @@ class OnboardingWizard(QDialog):
         # === Layout ===
         main = QVBoxLayout(self)
 
-        self.progress = QLabel("Step 1 of 5")
+        self.progress = QLabel("Step 1 of 6")  # Updated to 6
         self.progress.setAlignment(Qt.AlignCenter)
         self.progress.setObjectName("progress")
 
@@ -69,10 +72,8 @@ class OnboardingWizard(QDialog):
         try:
             from database.db import load_profile
             profile = load_profile()
-            
             if profile:
                 self.existing_data = profile
-                # Pre-fill values (will be applied when reaching each step)
                 self.has_existing = True
             else:
                 self.has_existing = False
@@ -96,15 +97,10 @@ class OnboardingWizard(QDialog):
 
     def step_city(self):
         self.city = QComboBox()
-        
-        # Load cities from database
         try:
             from database.city import get_all_cities
-            
             cities = get_all_cities()
-            
-            # Store city data (name -> id) for later retrieval
-            self.city_data = {}  # name -> id
+            self.city_data = {}
             for city in cities:
                 city_name = city["name"]
                 city_id = city["id"]
@@ -112,27 +108,47 @@ class OnboardingWizard(QDialog):
                 self.city.addItem(city_name)
         except Exception as e:
             print(f"Error loading cities: {e}")
-            # Fallback cities
             fallback_cities = ["Tehran", "Mashhad", "Isfahan", "Shiraz", "Tabriz", "Karaj", "Yazd"]
             self.city_data = {city: i+1 for i, city in enumerate(fallback_cities)}
             self.city.addItems(fallback_cities)
-        
+
         self.city.setCurrentIndex(0)
-        
-        # Pre-select city if in edit mode and city exists
+
         if hasattr(self, 'has_existing') and self.has_existing:
             city_name = self.existing_data.get("City")
             if city_name:
                 index = self.city.findText(city_name)
                 if index >= 0:
                     self.city.setCurrentIndex(index)
-        
+
         return self.build_step("Which city are you in?", self.city)
 
     def step_fitness(self):
         self.fitness = QComboBox()
         self.fitness.addItems(["Low", "Medium", "High"])
         return self.build_step("Your fitness level?", self.fitness)
+
+    # ─── NEW: Bio Step ──────────────────────────────────────────
+    def step_bio(self):
+        self.bio_edit = QPlainTextEdit()
+        self.bio_edit.setPlaceholderText(
+            "Tell us about yourself, your goals, injuries, preferences, or anything relevant..."
+        )
+        self.bio_edit.setMaximumHeight(120)
+        self.bio_edit.setStyleSheet("""
+            QPlainTextEdit {
+                padding: 12px;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 13px;
+                background: white;
+                color: #0f172a;
+            }
+            QPlainTextEdit:focus {
+                border: 2px solid #667eea;
+            }
+        """)
+        return self.build_step("Anything else about you?", self.bio_edit)
 
     def step_done(self):
         w = QWidget()
@@ -167,7 +183,13 @@ class OnboardingWizard(QDialog):
         layout.addStretch()
         layout.addWidget(title_lbl)
         layout.addSpacing(20)
-        layout.addWidget(widget)
+
+        # For QPlainTextEdit, we need to add it directly
+        if isinstance(widget, QPlainTextEdit):
+            layout.addWidget(widget)
+        else:
+            layout.addWidget(widget)
+
         layout.addStretch()
 
         return w
@@ -181,8 +203,6 @@ class OnboardingWizard(QDialog):
             self.step_index += 1
             self.stack.setCurrentIndex(self.step_index)
             self.update_ui()
-
-            # Apply pre-filled values when entering a step
             self.apply_prefilled_values()
 
     def prev_step(self):
@@ -201,28 +221,30 @@ class OnboardingWizard(QDialog):
     # ================= Apply Pre-filled Values =================
 
     def apply_prefilled_values(self):
-        """Apply existing profile data when entering a step"""
-        if not hasattr(self, 'has_existing') or not self.has_existing:
+        if not self.has_existing:
             return
 
-        if self.step_index == 0:  # Age step
+        if self.step_index == 0:      # Age
             age = self.existing_data.get("Age")
             if age:
                 self.age.setValue(age)
-        elif self.step_index == 1:  # Health step
+        elif self.step_index == 1:    # Health
             health = self.existing_data.get("HealthCondition")
             if health:
                 index = self.health.findText(health)
                 if index >= 0:
                     self.health.setCurrentIndex(index)
-        elif self.step_index == 2:  # City step (already handled in step creation)
+        elif self.step_index == 2:    # City (already handled)
             pass
-        elif self.step_index == 3:  # Fitness step
+        elif self.step_index == 3:    # Fitness
             fitness = self.existing_data.get("FitnessLevel")
             if fitness:
                 index = self.fitness.findText(fitness)
                 if index >= 0:
                     self.fitness.setCurrentIndex(index)
+        elif self.step_index == 4:    # Bio
+            bio = self.existing_data.get("bio", "")
+            self.bio_edit.setPlainText(bio)
 
     # ================= Data =================
 
@@ -232,13 +254,14 @@ class OnboardingWizard(QDialog):
         elif self.step_index == 1:
             self.data["HealthCondition"] = self.health.currentText()
         elif self.step_index == 2:
-            # Store city_id for database
             city_name = self.city.currentText()
             if hasattr(self, 'city_data') and city_name in self.city_data:
                 self.data["city_id"] = self.city_data[city_name]
                 self.data["City"] = city_name
         elif self.step_index == 3:
             self.data["FitnessLevel"] = self.fitness.currentText()
+        elif self.step_index == 4:
+            self.data["bio"] = self.bio_edit.toPlainText().strip()
 
     def finish(self):
         # Save to database
@@ -253,9 +276,9 @@ class OnboardingWizard(QDialog):
                 print("✅ Profile saved successfully")
         except Exception as e:
             print(f"Error saving profile: {e}")
-        
+
         self.finished.emit(self.data)
-        self.close()
+        self.accept()
 
     # ================= Style =================
 

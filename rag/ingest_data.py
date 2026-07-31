@@ -1,4 +1,3 @@
-
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -243,7 +242,7 @@ LOADER_MAP = {
 
 
 # =============================================================================
-# EXISTING DATABASE LOADERS (unchanged)
+# EXISTING DATABASE LOADERS (UPDATED: auto-creates medical_guidelines table)
 # =============================================================================
 
 def load_exercises_from_db():
@@ -271,31 +270,90 @@ def load_foods_from_db():
 
 
 def load_medical_guidelines_from_db():
+    """Load medical guidelines from database. Auto-creates the table if missing."""
     try:
         with get_db() as conn:
             cursor = conn.cursor()
+
+            # ─── Auto-create table if missing ──────────────────────
             cursor.execute("""
-                SELECT title, content, source, category
-                FROM medical_guidelines
+                CREATE TABLE IF NOT EXISTS medical_guidelines (
+                    id SERIAL PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    source TEXT,
+                    category TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
             """)
+            conn.commit()
+
+            # ─── Then query ──────────────────────────────────────
+            cursor.execute("SELECT title, content, source, category FROM medical_guidelines")
             rows = cursor.fetchall()
             if rows:
                 return [dict(row) for row in rows]
     except Exception as e:
-        logger.warning(f"No medical_guidelines table found or error loading: {e}")
+        logger.warning(f"Error loading medical_guidelines: {e}")
 
     return get_sample_medical_guidelines()
 
 
 def get_sample_medical_guidelines():
+    """Fallback sample guidelines (used only if table is empty)."""
     return [
         {
             "title": "Asthma and Exercise",
-            "content": """...""",
+            "content": """For individuals with asthma, exercise can be beneficial but requires careful management.
+            Key recommendations:
+            - Choose low to moderate intensity activities
+            - Avoid exercising in cold, dry air
+            - Warm up properly before exercise
+            - Use inhaler 15-30 minutes before exercise if prescribed
+            - Stop if symptoms worsen and seek medical attention
+            - Swimming is often well-tolerated due to humid environment""",
             "source": "American Lung Association",
-            "category": "Respiratory Health",
+            "category": "Respiratory Health"
         },
-        # ... other samples ...
+        {
+            "title": "Heart Disease and Physical Activity",
+            "content": """Regular physical activity is crucial for heart health but must be approached carefully.
+            Guidelines:
+            - Consult cardiologist before starting exercise program
+            - Start with low intensity activities like walking
+            - Monitor heart rate and symptoms during exercise
+            - Stop immediately if experiencing chest pain, shortness of breath, or dizziness
+            - Include both aerobic and strength training
+            - Stay hydrated and avoid extreme temperatures""",
+            "source": "American Heart Association",
+            "category": "Cardiovascular Health"
+        },
+        {
+            "title": "Diabetes and Exercise",
+            "content": """Exercise is important for blood sugar control in diabetes management.
+            Important considerations:
+            - Monitor blood sugar before, during, and after exercise
+            - Carry fast-acting glucose for hypoglycemia
+            - Start slowly and build up gradually
+            - Include both aerobic and resistance training
+            - Stay hydrated and be aware of heat effects on insulin
+            - Consult healthcare provider for personalized plan""",
+            "source": "American Diabetes Association",
+            "category": "Metabolic Health"
+        },
+        {
+            "title": "Air Quality and Outdoor Exercise",
+            "content": """Poor air quality can significantly impact exercise safety and effectiveness.
+            Recommendations:
+            - Check air quality index (AQI) before outdoor activities
+            - Avoid exercise when AQI > 100 (unhealthy)
+            - Choose indoor alternatives on poor air quality days
+            - Use N95 masks if exercising in polluted areas
+            - Reduce intensity and duration during poor air quality
+            - Stay hydrated as respiratory issues increase fluid needs""",
+            "source": "Environmental Protection Agency",
+            "category": "Environmental Health"
+        }
     ]
 
 
@@ -324,14 +382,7 @@ def file_hash(path):
 
 
 def delete_ids(ids):
-    """Remove previously-ingested chunks for a file that changed or was deleted.
-
-    NOTE: this tries a few common method names on your vector_store since that
-    class wasn't included in what you shared. If none of these match, this will
-    log a warning instead of silently failing — check your rag/rag_system.py and
-    either rename one of your existing methods to match, or add a thin wrapper
-    around Chroma's collection.delete(ids=...).
-    """
+    """Remove previously-ingested chunks for a file that changed or was deleted."""
     if not ids:
         return
 
@@ -503,7 +554,7 @@ def ingest_data():
         else:
             logger.warning("⚠️ No foods found in database - skipping")
 
-        # 3) Medical guidelines
+        # 3) Medical guidelines (auto-creates table)
         guidelines = load_medical_guidelines_from_db()
         documents = [g["content"] for g in guidelines]
         metadatas = [{"title": g["title"], "source": g["source"], "category": g["category"]} for g in guidelines]

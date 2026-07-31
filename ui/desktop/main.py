@@ -1,6 +1,19 @@
 # ui/desktop/main.py
 import sys
 import os
+
+# ============================================================================
+# CRITICAL PROCESS ENVIRONMENT GUARDS
+# Must be initialized before importing Qt, PyTorch, or Transformers
+# ============================================================================
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from database.city import init_city_table
@@ -21,9 +34,11 @@ if __name__ == "__main__":
         try:
             with open(style_path, "r", encoding="utf-8") as f:
                 app.setStyleSheet(f.read())
-        except:
+        except Exception:
             pass
     
+    # Show main GUI window
     window = MainContainer()
     window.show()
+    
     sys.exit(app.exec())

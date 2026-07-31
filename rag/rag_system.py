@@ -1,9 +1,18 @@
 # rag/rag_system.py
 
 # ============================================================================
-# DISABLE TELEMETRY
+# ENVIRONMENT & THREADING GUARDS
 # ============================================================================
 import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 os.environ['CHROMA_TELEMETRY'] = 'False'
 os.environ['ANONYMIZED_TELEMETRY'] = 'False'
 os.environ['POSTHOG_API_KEY'] = ''
@@ -32,22 +41,29 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 try:
+    import torch
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+except ImportError:
+    pass
+
+try:
     import numpy as np
     HAS_NUMPY = True
-except:
+except ImportError:
     HAS_NUMPY = False
 
 try:
     from sentence_transformers import SentenceTransformer
     HAS_SENTENCE = True
-except:
+except ImportError:
     HAS_SENTENCE = False
 
 try:
     import chromadb
     from chromadb.config import Settings as ChromaSettings
     HAS_CHROMA = True
-except:
+except ImportError:
     HAS_CHROMA = False
 
 
@@ -95,7 +111,7 @@ class EmbeddingManager:
         with self._lock:
             try:
                 return self.model.encode(texts, batch_size=batch_size, show_progress_bar=False).tolist()
-            except:
+            except Exception:
                 return [[0.0] * 384 for _ in texts]
     
     def encode_single(self, text):
@@ -125,7 +141,7 @@ class VectorStore:
             for name in ["exercises", "nutrition", "medical"]:
                 try:
                     self.collections[name] = self.client.get_collection(name)
-                except:
+                except Exception:
                     self.collections[name] = self.client.create_collection(name)
             self._ok = True
             logger.info("✅ ChromaDB initialized")
@@ -158,7 +174,7 @@ class VectorStore:
             if f.exists():
                 try:
                     data = json.load(open(f, encoding='utf-8'))
-                except:
+                except Exception:
                     pass
             for d, m, i in zip(docs, metas, ids):
                 data.append({'id': i, 'document': d, 'metadata': m})
@@ -177,16 +193,16 @@ class VectorStore:
                     return self.collections[col].query(
                         query_embeddings=[q_emb],
                         n_results=n,
-                        include=['documents','metadatas','distances']
+                        include=['documents', 'metadatas', 'distances']
                     )
-                except:
+                except Exception:
                     pass
-        return {'documents':[[]],'metadatas':[[]],'distances':[[]]}
+        return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
     
     def _json_search(self, col, query, n):
         f = self.dir / f"{col}.json"
         if not f.exists():
-            return {'documents':[[]],'metadatas':[[]],'distances':[[]]}
+            return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
         try:
             data = json.load(open(f, encoding='utf-8'))
             words = query.lower().split()
@@ -198,9 +214,9 @@ class VectorStore:
                     scored.append((s, item))
             scored.sort(key=lambda x: x[0], reverse=True)
             top = [m for _, m in scored[:n]]
-            return {'documents':[[t['document'] for t in top]],'metadatas':[[t['metadata'] for t in top]],'distances':[[0.1]*len(top)]}
-        except:
-            return {'documents':[[]],'metadatas':[[]],'distances':[[]]}
+            return {'documents': [[t['document'] for t in top]], 'metadatas': [[t['metadata'] for t in top]], 'distances': [[0.1] * len(top)]}
+        except Exception:
+            return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
     
     def search_multiple(self, cols, query, n=3):
         return {c: self.search(c, query, n) for c in cols}

@@ -1,52 +1,52 @@
 [
   {
-    "id": "3a8b2abc-65bc-4788-81bd-e07487e4b949",
+    "id": "893c98a7-312c-4c7f-ab4a-85827748ab51",
     "type": "analysis",
-    "created_at": "Jul 28, 2026  •  01:31 AM",
+    "created_at": "Jul 30, 2026  •  09:08 AM",
     "status": "SAFE",
-    "subtitle": "ML prediction (confidence: 0.99)",
+    "subtitle": "ML prediction (confidence: 0.98)",
     "reasons": [
-      "ML prediction (confidence: 0.99)"
+      "ML prediction (confidence: 0.98)"
     ],
-    "confidence": 0.9852914155055451,
+    "confidence": 0.9792397326834166,
     "score": 20,
-    "ai_recommendation": "30 minutes low cardio in the morning is safe for you. Stay hydrated and warm up briefly before starting. </think>\n\nYou should do your low cardio as planned. 30 minutes is a good duration for you right now.",
+    "ai_recommendation": "**Direct Advice for Your Profile:**  \n- **Safety:** Your profile (Age: 24, Healthy, Low Fitness, Low Cardio for 30 mins) is safe to proceed with no major risks.",
     "experience_emoji": "😐",
     "raw_result": {
-      "ED": 0.17,
+      "ED": 1.72,
       "air_quality": {
-        "co": 200.0,
-        "no2": 25.0,
-        "o3": 25.0,
-        "pm10": 25.0,
-        "pm25": 25.0,
-        "so2": 25.0
+        "co": 183.0,
+        "no2": 13.7,
+        "o3": 101.0,
+        "pm10": 16.1,
+        "pm25": 7.3,
+        "so2": 8.5
       },
       "detailed_risk": null,
       "detector": {
-        "confidence": 0.9852914155055451,
+        "confidence": 0.9792397326834166,
         "label": "Safe",
         "normalized_input": {
           "ActivityType": "Low Cardio",
           "Age": 24,
           "DurationMins": 30,
-          "ED": 0.17,
+          "ED": 1.72,
           "FitnessLevel": "Low",
           "HealthCondition": "Healthy",
           "TimeOfDay": "Morning"
         },
         "reasons": [
-          "ML prediction (confidence: 0.99)"
+          "ML prediction (confidence: 0.98)"
         ],
         "score": 20
       },
       "ed_math_model": {
         "dominant_factors": [],
-        "interaction_score": 0.0,
-        "pollution_score": 0.25,
+        "interaction_score": 0.2,
+        "pollution_score": 0.01,
         "risk_level": "Very Low",
-        "score": 0.17,
-        "temperature_score": 0.0
+        "score": 1.72,
+        "temperature_score": 5.73
       },
       "ed_recommendations": [
         "✅ Good conditions for outdoor exercise.",

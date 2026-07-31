@@ -12,7 +12,7 @@ class UserProfileWidget(QWidget):
 
     def __init__(self, main_container=None):
         super().__init__()
-        self.main_container = main_container  # ← Now properly set
+        self.main_container = main_container
         self.user_data = None
         self.setup_ui()
         self.load_user_data()
@@ -140,6 +140,7 @@ class UserProfileWidget(QWidget):
         self.health_label = QLabel("--")
         self.city_label = QLabel("--")
         self.fitness_label = QLabel("--")
+        self.bio_label = QLabel("")  # ← NEW bio label
 
         # Rows
         card_layout.addWidget(
@@ -157,6 +158,21 @@ class UserProfileWidget(QWidget):
         card_layout.addWidget(
             self.create_info_card("💪", "Fitness Level", self.fitness_label)
         )
+
+        # ─── NEW: Bio row ──────────────────────────────────────────
+        bio_container = self.create_info_card("📝", "About Me", self.bio_label)
+        bio_container.setMinimumHeight(100)  # More room for text
+        # Override the value widget style for multiline
+        self.bio_label.setWordWrap(True)
+        self.bio_label.setStyleSheet("""
+            color: #0f172a;
+            background: transparent;
+            border: none;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.5;
+        """)
+        card_layout.addWidget(bio_container)
 
         layout.addWidget(card)
 
@@ -217,6 +233,7 @@ class UserProfileWidget(QWidget):
             border: none;
         """)
 
+        # For bio, we use the provided widget directly (QLabel)
         value_widget.setFont(QFont("Segoe UI", 12, QFont.Bold))
         value_widget.setStyleSheet("""
             color: #0f172a;
@@ -240,24 +257,22 @@ class UserProfileWidget(QWidget):
         try:
             from database.auth import get_user_by_id
             from database.db import get_user
-            
+
             # Get current user from main container
             if self.main_container and self.main_container.current_user:
                 user_id = self.main_container.current_user.get("id")
                 if user_id:
                     user = get_user_by_id(user_id)
                     if user:
-                        # ─── Set username ──────────────────────────
-                        username = user.get("username", "Guest User")
-                        self.username_label.setText(username)
+                        self.username_label.setText(user.get("username", "Guest User"))
                         self.age_label.setText(str(user.get("age", "Not set")))
                         self.health_label.setText(user.get("health_condition", "Not set"))
                         self.fitness_label.setText(user.get("fitness_level", "Not set"))
-                        # Try to get city
                         city = user.get("city_name") or user.get("city") or "Not set"
                         self.city_label.setText(city)
+                        self.bio_label.setText(user.get("bio", "No bio provided."))
                         return
-            
+
             # Fallback: try to get any user
             user = get_user()
             if user:
@@ -267,6 +282,7 @@ class UserProfileWidget(QWidget):
                 self.fitness_label.setText(user.get("fitness_level", "Not set"))
                 city = user.get("city_name") or user.get("city") or "Not set"
                 self.city_label.setText(city)
+                self.bio_label.setText(user.get("bio", "No bio provided."))
             else:
                 self.set_default_values()
         except Exception as e:
@@ -280,6 +296,7 @@ class UserProfileWidget(QWidget):
         self.health_label.setText("Not set")
         self.city_label.setText("Not set")
         self.fitness_label.setText("Not set")
+        self.bio_label.setText("No bio provided.")
 
     def refresh(self):
         """Refresh profile data from database"""

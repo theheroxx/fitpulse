@@ -119,7 +119,8 @@ def init_db():
                     is_admin BOOLEAN DEFAULT FALSE,
                     last_login TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    bio TEXT
                 )
             """)
 
@@ -132,7 +133,8 @@ def init_db():
                 "city_id": "ALTER TABLE users ADD COLUMN city_id INTEGER REFERENCES cities(id)",
                 "is_admin": "ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE",
                 "last_login": "ALTER TABLE users ADD COLUMN last_login TIMESTAMP",
-                "updated_at": "ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                "updated_at": "ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                "bio": "ALTER TABLE users ADD COLUMN bio TEXT"
             }
             for col, query in migrations.items():
                 if col not in existing_cols:
@@ -253,17 +255,15 @@ def init_db():
                 cur.execute("""
                     INSERT INTO users (
                         username, email, password, age, health_condition,
-                        fitness_level, is_admin
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, ("admin", "admin@example.com", admin_password, 30, "Healthy", "Medium", True))
+                        fitness_level, is_admin, bio
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, ("admin", "admin@example.com", admin_password, 30, "Healthy", "Medium", True, ""))
                 print("✅ Default admin created")
 
             conn.commit()
             print("✅ PostgreSQL Database initialized")
 
 # ─── All existing CRUD functions ──────────────────────────────────
-# Replace every `?` placeholder with `%s` in the SQL queries.
-# This is already done in the functions below.
 
 # ─── EXPERIENCE RECORDS ───────────────────────────────────────────
 
@@ -320,7 +320,7 @@ def get_experience_history(user_id, limit=20):
 
 # ─── USERS ──────────────────────────────────────────────────────────
 
-def save_user(age, health_condition, fitness_level, city_id=None, username=None, email=None):
+def save_user(age, health_condition, fitness_level, city_id=None, username=None, email=None, bio=None):
     with get_db() as conn:
         with conn.cursor() as cur:
             # Check existing non-admin user
@@ -330,21 +330,21 @@ def save_user(age, health_condition, fitness_level, city_id=None, username=None,
                 cur.execute("""
                     UPDATE users
                     SET age = %s, health_condition = %s, fitness_level = %s,
-                        city_id = %s, username = %s, email = %s,
+                        city_id = %s, username = %s, email = %s, bio = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                     RETURNING id
-                """, (age, health_condition, fitness_level, city_id, username, email, user['id']))
+                """, (age, health_condition, fitness_level, city_id, username, email, bio, user['id']))
                 row = cur.fetchone()
                 return row['id']
             else:
                 cur.execute("""
                     INSERT INTO users (
                         age, health_condition, fitness_level,
-                        city_id, username, email, is_admin
-                    ) VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+                        city_id, username, email, bio, is_admin
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
                     RETURNING id
-                """, (age, health_condition, fitness_level, city_id, username, email))
+                """, (age, health_condition, fitness_level, city_id, username, email, bio))
                 row = cur.fetchone()
                 return row['id']
 
@@ -369,6 +369,18 @@ def get_user():
                 LEFT JOIN cities c ON u.city_id = c.id
                 LIMIT 1
             """)
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+def get_user_by_id(user_id):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, username, email, age, health_condition,
+                       fitness_level, is_admin, created_at, last_login, bio
+                FROM users
+                WHERE id = %s
+            """, (user_id,))
             row = cur.fetchone()
             return dict(row) if row else None
 
@@ -502,7 +514,8 @@ def load_profile():
             return {
                 "Age": user.get("age", 25),
                 "HealthCondition": user.get("health_condition", "Healthy"),
-                "FitnessLevel": user.get("fitness_level", "Medium")
+                "FitnessLevel": user.get("fitness_level", "Medium"),
+                "bio": user.get("bio", "")
             }
         return None
     except Exception as e:

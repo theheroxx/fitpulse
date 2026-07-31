@@ -32,7 +32,8 @@ def save_profile(data):
             fitness_level=data.get("FitnessLevel", "Medium"),
             city_id=city_id,
             username=data.get("username"),
-            email=data.get("email")
+            email=data.get("email"),
+            bio=data.get("bio")  # ← new
         )
 
         print(f"✅ Profile saved successfully (ID: {user_id})")
@@ -44,7 +45,7 @@ def save_profile(data):
 
 
 # =============================================================================
-# UPDATE PROFILE (for editing existing user) - FIXED
+# UPDATE PROFILE (for editing existing user)
 # =============================================================================
 
 def update_profile(data):
@@ -73,7 +74,7 @@ def update_profile(data):
             # Get the user ID from existing record
             user_id = existing_user["id"]
             
-            # ─── FIX: Use %s instead of ? for PostgreSQL ────────
+            # ─── Use %s placeholders for PostgreSQL ────────────────
             from database.db import get_db
             with get_db() as conn:
                 cursor = conn.cursor()
@@ -83,6 +84,7 @@ def update_profile(data):
                         health_condition = %s,
                         fitness_level = %s,
                         city_id = %s,
+                        bio = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (
@@ -90,6 +92,7 @@ def update_profile(data):
                     data.get("HealthCondition", "Healthy"),
                     data.get("FitnessLevel", "Medium"),
                     city_id,
+                    data.get("bio", ""),  # ← new
                     user_id
                 ))
                 conn.commit()
@@ -120,7 +123,8 @@ def load_profile():
                 "Age": user.get("age", 25),
                 "HealthCondition": user.get("health_condition", "Healthy"),
                 "FitnessLevel": user.get("fitness_level", "Medium"),
-                "city_id": user.get("city_id")
+                "city_id": user.get("city_id"),
+                "bio": user.get("bio", "")  # ← new
             }
 
             if user.get("city_name"):
