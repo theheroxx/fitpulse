@@ -7,7 +7,7 @@ import os
 os.environ['CHROMA_TELEMETRY'] = 'False'
 os.environ['ANONYMIZED_TELEMETRY'] = 'False'
 
-from ed_calculator.ed_engine import ExerciseDangerPredictor
+from ed_calculator.math_model import ExerciseDangerPredictor
 from detector import rule_based_detector
 from database import get_exercises, get_foods
 from transformer.recommender import generate_recommendation, generate_recommendation_with_rag
@@ -139,50 +139,116 @@ def get_simple_recommendations(ed_score, PL, WD):
     return recommendations
 
 
+# ============================================================================
+# UNIT CONVERSION: µg/m³ → ppm
+# ============================================================================
+
+def ugm3_to_ppm(value: float, molecular_weight: float) -> float:
+    """
+    Convert concentration from µg/m³ to ppm at 25°C, 1 atm.
+    Uses molar volume: 24.45 L/mol.
+    ppm = (µg/m³ * 24.45) / (molecular_weight * 1000.0)
+    """
+    if value is None or value <= 0:
+        return None
+    return value * 24.45 / (molecular_weight * 1000.0)
+
+
+# ============================================================================
+# ED CALCULATION — FIXED with unit conversion for gases
+# ============================================================================
+
 def calculate_detailed_environmental_risk(weather_data, air_data):
     """
     Calculate environmental risk using the mathematical model.
+    Converts gas pollutants from µg/m³ to ppm before passing to the model.
     """
     try:
-        from ed_calculator.ed_engine import ExerciseDangerMathModel
+        from ed_calculator.math_model import ExerciseDangerMathModel
+        from ed_calculator.pollution import (
+            pm25_to_aqi, pm10_to_aqi, o3_to_aqi, no2_to_aqi,
+            so2_to_aqi, co_to_aqi, aqi_to_epa_index
+        )
         
-        # Initialize model if not already done
+        # Initialize model (singleton)
         if not hasattr(calculate_detailed_environmental_risk, '_model'):
             calculate_detailed_environmental_risk._model = ExerciseDangerMathModel()
         
         model = calculate_detailed_environmental_risk._model
         
-        # Prepare input for the model
-        prediction_data = {
-            'PL': air_data.get('pm25', 50),  # PM2.5
-            'WD': weather_data.get('temp', 22),  # Temperature
-            'sensitive_population': False  # Default, can be passed in
-        }
+        # ─── Extract weather ──────────────────────────────────────────
+        temp = weather_data.get('temp', 22.0)
+        humidity = weather_data.get('humid', 45.0)
+        wind = weather_data.get('wind', 10.0)
+        uv = weather_data.get('uv', 3.0)
         
-        # Use the correct method name
-        result = model.calculate_danger_score(
-            PL=prediction_data['PL'],
-            WD=prediction_data['WD'],
-            sensitive_population=prediction_data['sensitive_population']
+        # ─── Extract pollutants (all in µg/m³ from UI) ──────────────
+        pm25 = air_data.get('pm25', 10.0)
+        pm10 = air_data.get('pm10', 0.0)
+        o3_ug = air_data.get('o3', 0.0)
+        no2_ug = air_data.get('no2', 0.0)
+        so2_ug = air_data.get('so2', 0.0)
+        co_ug = air_data.get('co', 0.0)
+        
+        # ─── Convert gases: µg/m³ → ppm ──────────────────────────────
+        # Molecular weights: O3=48.0, NO2=46.0, SO2=64.07, CO=28.01
+        o3_ppm = ugm3_to_ppm(o3_ug, 48.0)
+        no2_ppm = ugm3_to_ppm(no2_ug, 46.0)
+        so2_ppm = ugm3_to_ppm(so2_ug, 64.07)
+        co_ppm = ugm3_to_ppm(co_ug, 28.01)
+        
+        # ─── Compute EPA index from all pollutants ────────────────────
+        aqi_values = {}
+        if pm25 > 0:
+            aqi_values["PM2.5"] = pm25_to_aqi(pm25)
+        if pm10 > 0:
+            aqi_values["PM10"] = pm10_to_aqi(pm10)
+        if o3_ppm is not None and o3_ppm > 0:
+            aqi_values["O3"] = o3_to_aqi(o3_ppm)
+        if no2_ppm is not None and no2_ppm > 0:
+            aqi_values["NO2"] = no2_to_aqi(no2_ppm)
+        if so2_ppm is not None and so2_ppm > 0:
+            aqi_values["SO2"] = so2_to_aqi(so2_ppm)
+        if co_ppm is not None and co_ppm > 0:
+            aqi_values["CO"] = co_to_aqi(co_ppm)
+        
+        epa_index = aqi_to_epa_index(max(aqi_values.values())) if aqi_values else 1
+        
+        # ─── Call the model with converted units ─────────────────────
+        result = model.predict(
+            temperature_celsius=temp,
+            humidity=humidity,
+            wind_kph=wind,
+            uv_index=uv,
+            air_quality_us_epa_index=epa_index,
+            air_quality_PM2_5=pm25 if pm25 > 0 else None,
+            air_quality_PM10=pm10 if pm10 > 0 else None,
+            air_quality_Ozone=o3_ppm if o3_ppm is not None and o3_ppm > 0 else None,
+            air_quality_Nitrogen_dioxide=no2_ppm if no2_ppm is not None and no2_ppm > 0 else None,
+            air_quality_Sulphur_dioxide=so2_ppm if so2_ppm is not None and so2_ppm > 0 else None,
+            air_quality_Carbon_Monoxide=co_ppm if co_ppm is not None and co_ppm > 0 else None,
+            cluster_id=None,
+            anomaly_flag=False,
         )
         
-        # Format to match expected output
         return {
             'FINAL_SCORE': result['ED'],
-            'STATUS': result['risk_level'].upper(),
-            'RANGE': '0-100',
-            'BIAS': '+0.0',
+            'STATUS': result['Risk_Level'].upper(),
+            'RANGE': result['confidence_range'],
+            'BIAS': f"{result['regional_adjustment']:+.1f}",
             'DETAILS': result
         }
         
     except Exception as e:
-        print(f"ERROR in calculate_detailed_environmental_risk!! {e}")
-        # Return fallback
+        print(f"ERROR in calculate_detailed_environmental_risk: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             'FINAL_SCORE': 50,
             'STATUS': 'MODERATE',
             'RANGE': '0-100',
-            'BIAS': '+0.0'
+            'BIAS': '+0.0',
+            'DETAILS': None
         }
 
 
@@ -231,9 +297,8 @@ def run_pipeline(user_input):
         try:
             detailed_result = calculate_detailed_environmental_risk(weather_data, air_data)
             ed = detailed_result["FINAL_SCORE"]
-            sensitive = user_data.get("sensitive", False)
-            if sensitive:
-                ed = min(100, ed + 15)
+            # Sensitive flag is now handled inside calculate_detailed_environmental_risk
+            # through the model's parameters, not as a post‑hoc +15
             user_data["ED"] = ed
             user_data["detailed_risk"] = detailed_result
         except Exception as e:

@@ -215,12 +215,12 @@ class AnimatedMessage(QWidget):
 class ChatTab(QWidget):
     def __init__(self):
         super().__init__()
-        self.messages = []
+        self.messages = []          # List of dicts with 'role' and 'content'
         self.context = None
         self.worker = None
         self.rag_worker = None
         self.detailed_mode = False
-        self.history_mode = False  # ← NEW: history toggle state
+        self.history_mode = False
         self.status_message = None
         self.setup_ui()
 
@@ -254,7 +254,7 @@ class ChatTab(QWidget):
         self.add_welcome()
 
         input_wrapper = QWidget()
-        input_wrapper.setFixedHeight(170)  # Increased height for new toggle
+        input_wrapper.setFixedHeight(170)
         input_wrapper.setStyleSheet("QWidget { background: white; border-top: 1px solid #e2e8f0; }")
 
         main_input_layout = QVBoxLayout(input_wrapper)
@@ -265,7 +265,6 @@ class ChatTab(QWidget):
         toggle_layout = QHBoxLayout()
         toggle_layout.setSpacing(12)
 
-        # Detailed Answer toggle
         self.detail_toggle = QPushButton("🔬 Detailed Answer")
         self.detail_toggle.setCheckable(True)
         self.detail_toggle.setCursor(Qt.PointingHandCursor)
@@ -283,7 +282,6 @@ class ChatTab(QWidget):
         """)
         self.detail_toggle.toggled.connect(self.on_detailed_toggle)
 
-        # ─── NEW: Read History toggle ─────────────────────────────
         self.history_toggle = QPushButton("📜 Read History")
         self.history_toggle.setCheckable(True)
         self.history_toggle.setCursor(Qt.PointingHandCursor)
@@ -363,6 +361,15 @@ class ChatTab(QWidget):
         else:
             self.add_message("assistant", "📜 **History mode disabled** - I'll only use your current profile.")
 
+    def _persist_chat_message(self, user_id, role, content):
+        if not user_id:
+            return
+        try:
+            from database.db import save_chat_message
+            save_chat_message(user_id, role, content)
+        except Exception as e:
+            print(f"Could not persist chat message: {e}")
+
     def add_welcome(self):
         self.add_message("assistant", "👋 Hi! I'm your AI fitness coach.\n\nRun an analysis first, then ask me questions.")
 
@@ -381,7 +388,10 @@ class ChatTab(QWidget):
             if role == "user":
                 message.setAlignment(Qt.AlignRight)
         wrapper_layout.addWidget(message)
-        self.messages.append(wrapper)
+        self.messages.append({
+            "role": role,
+            "content": content
+        })
         self.chat_layout.addWidget(wrapper)
         QTimer.singleShot(120, self.scroll_to_bottom)
         return wrapper
@@ -397,7 +407,24 @@ class ChatTab(QWidget):
         animation.start()
 
     def set_analysis_context(self, result):
+        first_load = self.context is None
         self.context = result
+        if first_load:
+            self._load_persisted_history()
+
+    def _load_persisted_history(self):
+        user_data = self.context.get('user_data', {}) if self.context else {}
+        user_id = user_data.get('id') if user_data else None
+        if not user_id:
+            return
+        try:
+            from database.db import get_recent_chat_messages
+            records = get_recent_chat_messages(user_id, limit=20)
+        except Exception as e:
+            print(f"Could not load persisted chat history: {e}")
+            return
+        for r in records:
+            self.add_message(r.get("role", "user"), r.get("content", ""), animated=False)
 
     def _remove_status_message(self):
         if self.status_message:
@@ -434,11 +461,18 @@ class ChatTab(QWidget):
             user_data = {"Age": 30, "HealthCondition": "Healthy", "FitnessLevel": "Medium"}
             detector_output = {"label": "Safe"}
 
+        self._active_user_id = user_data.get("id")
+        self._persist_chat_message(self._active_user_id, "user", question)
+
+        # ─── Get recent chat history (last 5 messages) ──────────
+        chat_history = self.messages[-5:] if self.messages else []
+
         if not self.detailed_mode:
             self.worker = ChatWorker(
                 user_data, detector_output, question,
                 detailed_mode=False,
-                include_history=self.history_mode
+                include_history=self.history_mode,
+                chat_history=chat_history  # ← Pass history
             )
             self.worker.response_ready.connect(self.on_response_received)
             self.worker.error.connect(self.on_error)
@@ -453,6 +487,7 @@ class ChatTab(QWidget):
         self._pending_detector_output = detector_output
         self._pending_question = question
         self._pending_history = self.history_mode
+        self._pending_chat_history = chat_history  # ← Store history for detailed mode
         health = user_data.get('HealthCondition', 'Unknown')
         activity = user_data.get('ActivityType', 'Unknown')
         self.rag_worker = RAGWorker(question, health, activity)
@@ -474,8 +509,8 @@ class ChatTab(QWidget):
             query=self._pending_question,
             detailed_mode=True,
             rag_context=rag_context,
-            # pyrefly: ignore [unexpected-keyword]
-            include_history=self._pending_history
+            include_history=self._pending_history,
+            chat_history=self._pending_chat_history  # ← Pass history
         )
         self.worker.response_ready.connect(self.on_response_received)
         self.worker.error.connect(self.on_error)
@@ -497,8 +532,8 @@ class ChatTab(QWidget):
             query=self._pending_question,
             detailed_mode=True,
             rag_context=None,
-            # pyrefly: ignore [unexpected-keyword]
-            include_history=self._pending_history
+            include_history=self._pending_history,
+            chat_history=self._pending_chat_history  # ← Pass history
         )
         self.worker.response_ready.connect(self.on_response_received)
         self.worker.error.connect(self.on_error)
@@ -507,6 +542,7 @@ class ChatTab(QWidget):
     def on_response_received(self, response):
         if response and response.strip():
             self.add_message("assistant", response)
+            self._persist_chat_message(getattr(self, "_active_user_id", None), "assistant", response)
         else:
             self.add_message("assistant", "I'm having trouble generating a response right now. Please try again.")
 
@@ -538,8 +574,16 @@ class ChatTab(QWidget):
             self.rag_worker.wait(3000)
             self.rag_worker = None
         self._remove_status_message()
-        for msg in self.messages:
-            msg.deleteLater()
+
+        user_data = self.context.get('user_data', {}) if self.context else {}
+        user_id = user_data.get('id') if user_data else None
+        if user_id:
+            try:
+                from database.db import clear_chat_messages
+                clear_chat_messages(user_id)
+            except Exception as e:
+                print(f"Could not clear persisted chat history: {e}")
+
         self.messages.clear()
         while self.chat_layout.count():
             item = self.chat_layout.takeAt(0)

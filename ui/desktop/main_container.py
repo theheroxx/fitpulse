@@ -31,9 +31,10 @@ class MainContainer(QMainWindow):
         self.is_dragging = False
         self.drag_position = QPoint()
         self.rag_available = False
+        self.is_menu_expanded = True  # Tracks menu state
 
         # ── FIRST: Create ED engine ─────────────────────────────
-        from ed_calculator.ed_engine import ExerciseDangerMathModel
+        from ed_calculator.math_model import ExerciseDangerMathModel
         self.ed_engine = ExerciseDangerMathModel()
 
         # ── START ML WORKER (will populate ed_engine) ────────────
@@ -115,22 +116,35 @@ class MainContainer(QMainWindow):
         self.shadow_effect.setColor(QColor(15, 23, 42, 45))
         self.content_widget.setGraphicsEffect(self.shadow_effect)
 
-        content_layout = QVBoxLayout(self.content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
+        # Main horizontal layout
+        main_horizontal_layout = QHBoxLayout(self.content_widget)
+        main_horizontal_layout.setContentsMargins(0, 0, 0, 0)
+        main_horizontal_layout.setSpacing(0)
+
+        # Build Side Navigation
+        self.side_menu = self._create_side_menu()
+        self.side_menu.setVisible(False)  # Hidden on login/register
+        main_horizontal_layout.addWidget(self.side_menu)
+
+        # Setup Sliding Animation
+        self.menu_animation = QPropertyAnimation(self.side_menu, b"maximumWidth")
+        self.menu_animation.setDuration(300)
+        self.menu_animation.setEasingCurve(QEasingCurve.InOutCubic)
+
+        # Right Content Area (Title Bar + Stacked Widget)
+        self.right_container = QFrame()
+        self.right_container.setObjectName("right_container")
+        right_layout = QVBoxLayout(self.right_container)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
 
         self.title_bar = self._create_title_bar()
-        content_layout.addWidget(self.title_bar)
-
-        self.tab_bar = self._create_tab_bar()
-        self.tab_bar.setVisible(False)
-        content_layout.addWidget(self.tab_bar)
+        right_layout.addWidget(self.title_bar)
 
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.setObjectName("stacked_widget")
 
         # ── Pages ─────────────────────────────────────────────
-
         # 0 — Login
         self.login_page = LoginWidget()
         self.login_page.login_successful.connect(self.on_login_success)
@@ -169,10 +183,155 @@ class MainContainer(QMainWindow):
         self.records_page = RecordsPage()
         self.stacked_widget.addWidget(self.records_page)
 
-        content_layout.addWidget(self.stacked_widget, 1)
-        self.outer_layout.addWidget(self.content_widget)
+        right_layout.addWidget(self.stacked_widget, 1)
+        main_horizontal_layout.addWidget(self.right_container, 1)
 
+        self.outer_layout.addWidget(self.content_widget)
         self.switch_to_page(0)
+
+    # =========================================================
+    # SIDE MENU DESIGN & ANIMATION
+    # =========================================================
+
+    def _create_side_menu(self):
+        menu = QFrame()
+        menu.setObjectName("side_menu")
+        menu.setFixedWidth(250)
+
+        layout = QVBoxLayout(menu)
+        layout.setContentsMargins(12, 24, 12, 20)
+        layout.setSpacing(8)
+
+        # Branding Header
+        brand_layout = QHBoxLayout()
+        brand_layout.setContentsMargins(4, 0, 4, 16)
+        brand_layout.setSpacing(12)
+
+        app_icon = QLabel("🏃")
+        app_icon.setObjectName("brand_icon")
+        
+        self.brand_text_container = QWidget()
+        brand_text_layout = QVBoxLayout(self.brand_text_container)
+        brand_text_layout.setContentsMargins(0, 0, 0, 0)
+        brand_text_layout.setSpacing(2)
+        
+        brand_title = QLabel("AI Fitness")
+        brand_title.setObjectName("brand_title")
+        brand_sub = QLabel("Advisor v2.0")
+        brand_sub.setObjectName("brand_subtitle")
+
+        brand_text_layout.addWidget(brand_title)
+        brand_text_layout.addWidget(brand_sub)
+        
+        brand_layout.addWidget(app_icon)
+        brand_layout.addWidget(self.brand_text_container)
+        brand_layout.addStretch()
+
+        layout.addLayout(brand_layout)
+
+        # Divider
+        divider = QFrame()
+        divider.setObjectName("menu_divider")
+        divider.setFixedHeight(1)
+        layout.addWidget(divider)
+        layout.addSpacing(12)
+
+        # Navigation Buttons
+        self.tab_buttons = []
+        self.nav_items_data = [
+            ("🏠", "Home", self.go_to_home),
+            ("📊", "Analysis", self.go_to_analysis),
+            ("💬", "Chat", self.go_to_chat),
+            ("👤", "Profile", self.go_to_profile),
+            ("🕓", "History", self.go_to_history),
+            ("📋", "Records", self.go_to_records),
+        ]
+
+        for icon, text, cb in self.nav_items_data:
+            btn = QPushButton(f"  {icon}   {text}")
+            btn.setProperty("icon_symbol", icon)
+            btn.setProperty("full_text", text)
+            btn.setObjectName("side_menu_btn")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedHeight(48)
+            btn.clicked.connect(cb)
+            self.tab_buttons.append(btn)
+            layout.addWidget(btn)
+
+        layout.addStretch()
+
+        # User Profile & Logout Box at Bottom
+        self.user_card = QFrame()
+        self.user_card.setObjectName("user_card")
+        user_card_layout = QVBoxLayout(self.user_card)
+        user_card_layout.setContentsMargins(8, 12, 8, 12)
+        user_card_layout.setSpacing(10)
+
+        self.user_chip = QLabel("● Offline")
+        self.user_chip.setObjectName("user_chip")
+        user_card_layout.addWidget(self.user_chip)
+
+        self.logout_btn = QPushButton("Logout")
+        self.logout_btn.setObjectName("logout_btn")
+        self.logout_btn.setCursor(Qt.PointingHandCursor)
+        self.logout_btn.setFixedHeight(36)
+        self.logout_btn.clicked.connect(self.on_logout)
+        user_card_layout.addWidget(self.logout_btn)
+
+        layout.addWidget(self.user_card)
+
+        return menu
+
+    def toggle_side_menu(self):
+        """Animates menu sliding between expanded (250px) and collapsed (68px)."""
+        if self.menu_animation.state() == QAbstractAnimation.Running:
+            return
+        start_val = self.side_menu.width()
+        # If currently expanded, slide fully closed to 0
+        if self.is_menu_expanded:
+            end_val = 0
+            # shrink visuals immediately
+            self.brand_text_container.hide()
+            self.user_chip.hide()
+            self.logout_btn.setText("🚪")
+            for btn in self.tab_buttons:
+                icon = btn.property("icon_symbol")
+                btn.setText(icon)
+        else:
+            # ensure visible before expanding
+            if not self.side_menu.isVisible():
+                self.side_menu.setVisible(True)
+            end_val = 250
+            # restore full texts
+            self.brand_text_container.show()
+            self.user_chip.show()
+            self.logout_btn.setText("Logout")
+            for btn in self.tab_buttons:
+                icon = btn.property("icon_symbol")
+                text = btn.property("full_text")
+                btn.setText(f"  {icon}   {text}")
+
+        self.side_menu.setMinimumWidth(0)
+        self.side_menu.setMaximumWidth(start_val)
+
+        self.menu_animation.setStartValue(start_val)
+        self.menu_animation.setEndValue(end_val)
+        self.menu_animation.start()
+
+        # flip state; final visibility will be adjusted on animation finished
+        self.is_menu_expanded = not self.is_menu_expanded
+
+        # connect finished handler to hide when closed
+        try:
+            self.menu_animation.finished.disconnect()
+        except Exception:
+            pass
+        self.menu_animation.finished.connect(self._on_menu_anim_finished)
+
+    def _on_menu_anim_finished(self):
+        # Hide the side menu widget when its width is zero to fully remove from layout
+        if self.side_menu.width() == 0:
+            self.side_menu.setVisible(False)
 
     # =========================================================
     # TITLE BAR
@@ -181,40 +340,22 @@ class MainContainer(QMainWindow):
     def _create_title_bar(self):
         bar = QFrame()
         bar.setObjectName("title_bar")
-        bar.setFixedHeight(72)
-        bar.setProperty("filled", "false")
+        bar.setFixedHeight(64)
 
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(24, 0, 16, 0)
+        layout.setContentsMargins(16, 0, 16, 0)
         layout.setSpacing(12)
 
-        icon = QLabel("🏃")
-        icon.setObjectName("app_icon")
-        layout.addWidget(icon)
+        # Hamburger Button
+        self.hamburger_btn = QPushButton("☰")
+        self.hamburger_btn.setObjectName("hamburger_btn")
+        self.hamburger_btn.setFixedSize(40, 40)
+        self.hamburger_btn.setCursor(Qt.PointingHandCursor)
+        self.hamburger_btn.setVisible(False)  # Hidden initially until login
+        self.hamburger_btn.clicked.connect(self.toggle_side_menu)
+        layout.addWidget(self.hamburger_btn)
 
-        tc = QVBoxLayout()
-        tc.setSpacing(0)
-        t = QLabel("AI Fitness Advisor")
-        t.setObjectName("app_title")
-        s = QLabel("Smart AI-powered health companion")
-        s.setObjectName("app_subtitle")
-        tc.addWidget(t)
-        tc.addWidget(s)
-        layout.addLayout(tc)
         layout.addStretch()
-
-        self.user_chip = QLabel("● Offline")
-        self.user_chip.setObjectName("user_chip")
-        self.user_chip.setVisible(False)
-        layout.addWidget(self.user_chip)
-
-        self.logout_btn = QPushButton("Logout")
-        self.logout_btn.setObjectName("logout_btn")
-        self.logout_btn.setCursor(Qt.PointingHandCursor)
-        self.logout_btn.setFixedHeight(42)
-        self.logout_btn.setVisible(False)
-        self.logout_btn.clicked.connect(self.on_logout)
-        layout.addWidget(self.logout_btn)
 
         for attr, label in [
             ("min_btn", "—"),
@@ -224,7 +365,7 @@ class MainContainer(QMainWindow):
         ]:
             btn = QPushButton(label)
             btn.setObjectName("window_btn")
-            btn.setFixedSize(38, 38)
+            btn.setFixedSize(36, 36)
             btn.setCursor(Qt.PointingHandCursor)
             layout.addWidget(btn)
             setattr(self, attr, btn)
@@ -267,7 +408,7 @@ class MainContainer(QMainWindow):
         if hasattr(self, "max_btn"):
             self.max_btn.setText("❐" if self.isMaximized() else "▢")
         filled_str = "true" if filled else "false"
-        for attr in ("content_widget", "title_bar"):
+        for attr in ("content_widget", "title_bar", "side_menu"):
             w = getattr(self, attr, None)
             if w:
                 w.setProperty("filled", filled_str)
@@ -275,37 +416,8 @@ class MainContainer(QMainWindow):
                 w.style().polish(w)
 
     # =========================================================
-    # TAB BAR
+    # NAVIGATION
     # =========================================================
-
-    def _create_tab_bar(self):
-        bar = QFrame()
-        bar.setObjectName("tab_bar")
-        bar.setFixedHeight(74)
-
-        layout = QHBoxLayout(bar)
-        layout.setContentsMargins(22, 12, 22, 12)
-        layout.setSpacing(12)
-
-        self.tab_buttons = []
-        for text, cb in [
-            ("🏠 Home", self.go_to_home),
-            ("📊 Analysis", self.go_to_analysis),
-            ("💬 Chat", self.go_to_chat),
-            ("👤 Profile", self.go_to_profile),
-            ("🕓 History", self.go_to_history),
-            ("📋 Records", self.go_to_records),
-        ]:
-            btn = QPushButton(text)
-            btn.setObjectName("tab_button")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(46)
-            btn.clicked.connect(cb)
-            self.tab_buttons.append(btn)
-            layout.addWidget(btn)
-
-        layout.addStretch()
-        return bar
 
     def switch_to_page(self, index):
         self.current_page = index
@@ -317,27 +429,28 @@ class MainContainer(QMainWindow):
         for i, btn in enumerate(self.tab_buttons):
             if i == active:
                 btn.setStyleSheet("""
-                    QPushButton {
-                        background: qlineargradient(x1:0,y1:0,x2:1,y2:1,
-                                    stop:0 #2563eb, stop:1 #7c3aed);
-                        color: white; border: none; border-radius: 16px;
-                        font-size: 14px; font-weight: 700;
-                        padding-left: 22px; padding-right: 22px;
+                    QPushButton#side_menu_btn {
+                        background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #3b82f6, stop:1 #2563eb);
+                        color: #ffffff;
+                        font-weight: 700;
+                        border-left: 4px solid #60a5fa;
+                        border-radius: 12px;
                     }
                 """)
             else:
                 btn.setStyleSheet("""
-                    QPushButton {
-                        background: transparent; color: #64748b; border: none;
-                        border-radius: 16px; font-size: 14px; font-weight: 600;
-                        padding-left: 22px; padding-right: 22px;
+                    QPushButton#side_menu_btn {
+                        background: transparent;
+                        color: #94a3b8;
+                        font-weight: 600;
+                        border-left: 4px solid transparent;
+                        border-radius: 12px;
                     }
-                    QPushButton:hover { background: #f1f5f9; color: #0f172a; }
+                    QPushButton#side_menu_btn:hover {
+                        background: #1e293b;
+                        color: #f8fafc;
+                    }
                 """)
-
-    # =========================================================
-    # NAVIGATION
-    # =========================================================
 
     def go_to_home(self):     self.switch_to_page(2)
     def go_to_analysis(self): self.switch_to_page(3)
@@ -361,9 +474,8 @@ class MainContainer(QMainWindow):
 
         self.history_page.on_user_login(user["id"])
 
-        self.tab_bar.setVisible(True)
-        self.logout_btn.setVisible(True)
-        self.user_chip.setVisible(True)
+        self.side_menu.setVisible(True)
+        self.hamburger_btn.setVisible(True)
         self.user_chip.setText(f"● {user['username']}")
 
         self.switch_to_page(2)
@@ -379,9 +491,8 @@ class MainContainer(QMainWindow):
 
         self.history_page.on_user_logout()
 
-        self.tab_bar.setVisible(False)
-        self.logout_btn.setVisible(False)
-        self.user_chip.setVisible(False)
+        self.side_menu.setVisible(False)
+        self.hamburger_btn.setVisible(False)
         self.login_page.clear()
 
         if hasattr(self, "chat_page"):
@@ -434,51 +545,98 @@ class MainContainer(QMainWindow):
     def apply_static_styles(self):
         self.setStyleSheet("""
             QWidget#main_container {
-                background: qlineargradient(x1:0,y1:0,x2:1,y2:1,
-                            stop:0 #eef4ff, stop:1 #f8fafc);
+                background: #090d16;
             }
             QFrame#content_widget {
-                background: #ffffff;
-                border-radius: 28px;
-                border: 1px solid #e2e8f0;
+                background: #0f172a;
+                border-radius: 20px;
+                border: 1px solid #1e293b;
             }
             QFrame#content_widget[filled="true"] {
                 border-radius: 0px;
                 border: none;
             }
-            QFrame#title_bar {
-                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
-                            stop:0 #2563eb, stop:1 #7c3aed);
-                border-top-left-radius: 28px;
-                border-top-right-radius: 28px;
+            QFrame#side_menu {
+                background: #0f172a;
+                border-right: 1px solid #1e293b;
+                border-top-left-radius: 20px;
+                border-bottom-left-radius: 20px;
             }
-            QFrame#title_bar[filled="true"] {
+            QFrame#side_menu[filled="true"] {
                 border-top-left-radius: 0px;
-                border-top-right-radius: 0px;
+                border-bottom-left-radius: 0px;
             }
-            QLabel#app_icon    { font-size: 26px; }
-            QLabel#app_title   { color: white; font-size: 18px; font-weight: 800; }
-            QLabel#app_subtitle { color: rgba(255,255,255,0.82); font-size: 12px; font-weight: 500; }
+            QLabel#brand_icon {
+                font-size: 26px;
+            }
+            QLabel#brand_title {
+                color: #f8fafc;
+                font-size: 16px;
+                font-weight: 800;
+            }
+            QLabel#brand_subtitle {
+                color: #64748b;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QFrame#menu_divider {
+                background: #1e293b;
+                border: none;
+            }
+            QPushButton#side_menu_btn {
+                font-size: 14px;
+                text-align: left;
+            }
+            QFrame#user_card {
+                background: #1e293b;
+                border-radius: 14px;
+                border: 1px solid #334155;
+            }
             QLabel#user_chip {
-                background: rgba(255,255,255,0.16);
-                color: white; border-radius: 14px;
-                padding: 10px 18px; font-size: 12px; font-weight: 700;
+                color: #38bdf8;
+                font-size: 12px;
+                font-weight: 700;
             }
             QPushButton#logout_btn {
-                background: rgba(255,255,255,0.15);
-                color: white; border: none; border-radius: 14px;
-                padding-left: 18px; padding-right: 18px;
-                font-size: 13px; font-weight: 700;
+                background: #ef4444;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 700;
             }
-            QPushButton#logout_btn:hover { background: rgba(255,255,255,0.25); }
+            QPushButton#logout_btn:hover {
+                background: #dc2626;
+            }
+            QFrame#right_container {
+                background: #f8fafc;
+                border-top-right-radius: 20px;
+                border-bottom-right-radius: 20px;
+            }
+            QFrame#title_bar {
+                background: transparent;
+            }
+            QPushButton#hamburger_btn {
+                background: #1e293b;
+                color: #f8fafc;
+                border: 1px solid #334155;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: 700;
+            }
+            QPushButton#hamburger_btn:hover {
+                background: #334155;
+            }
             QPushButton#window_btn {
-                background: rgba(255,255,255,0.12);
-                color: white; border: none; border-radius: 12px;
-                font-size: 14px; font-weight: 700;
+                background: #e2e8f0;
+                color: #475569;
+                border: none;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 700;
             }
-            QPushButton#window_btn:hover { background: rgba(255,255,255,0.24); }
-            QFrame#tab_bar {
-                background: #ffffff;
-                border-bottom: 1px solid #e2e8f0;
+            QPushButton#window_btn:hover {
+                background: #cbd5e1;
+                color: #0f172a;
             }
         """)

@@ -69,6 +69,7 @@ class OllamaWithTimeout:
     def chat(self, model, messages, options, think=False):
         def _do():
             try:
+                # pyrefly: ignore [unexpected-keyword]
                 return client.chat(model=model, messages=messages, options=options, think=think)
             except TypeError:
                 return client.chat(model=model, messages=messages, options=options)
@@ -152,6 +153,7 @@ def generate_recommendation_with_rag(
     query: Optional[str] = None,
     rag_context: Optional[str] = None,
     include_history: bool = False,
+    chat_history: Optional[List[Dict]] = None,
 ) -> str:
     """Generate direct, grounded fitness safety advice."""
     
@@ -184,27 +186,59 @@ def generate_recommendation_with_rag(
     # Standardized System Prompt
     system_prompt = (
         "You are a supportive, practical fitness safety coach. "
+        "The user's question is the priority — answer it directly and specifically. "
+        "Use the medical context and profile as supporting detail, not a substitute for answering the actual question. "
         "Provide 2-4 sentences of direct, practical advice spoken directly to the user ('you'). "
-        "Base your guidance strictly on the medical context provided if available. "
         "Do not output internal reasoning or preambles."
     )
 
-    # Standardized User Prompt
-    user_prompt = f"Medical Context:\n{rag_context or 'None'}\n\n"
+    # Standardized User Prompt — question leads, structured fields support it
+    user_prompt = ""
+    if query:
+        user_prompt += f"User's Question: {query}\n\n"
+
+    user_prompt += f"Medical Context:\n{rag_context or 'None'}\n\n"
     user_prompt += f"User Profile:\n"
     user_prompt += f"- Health Condition: {user.get('HealthCondition', 'None')}\n"
     user_prompt += f"- Fitness Level: {user.get('FitnessLevel', 'Moderate')}\n"
     user_prompt += f"- Planned Activity: {user.get('ActivityType', 'Exercise')} ({user.get('DurationMins', 30)} mins)\n"
     user_prompt += f"- Environmental Risk Level: {label}\n"
-    
+
     if user.get("bio"):
         user_prompt += f"- Personal Bio: {user.get('bio')}\n"
     if history_context:
         user_prompt += f"{history_context}\n"
+
+    # ─── Recent conversation, flattened as plain text (not separate chat
+    # turns — this fine-tuned model expects a single system+user exchange,
+    # not a real multi-turn messages array). ──────────────────────────
+    if chat_history:
+        # The caller (chat_tab) appends the current question to its message
+        # log before slicing, so the last entry is usually this same query —
+        # drop it here so it isn't duplicated with the question above.
+        history_turns = [
+            m for m in chat_history
+            if not (m.get("role") == "user" and m.get("content") == query)
+        ]
+        convo_lines = []
+        for msg in history_turns[-4:]:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "user" and content:
+                convo_lines.append(f"User: {content}")
+            elif role == "assistant" and content:
+                convo_lines.append(f"Assistant: {content}")
+        if convo_lines:
+            user_prompt += "\nRecent Conversation:\n" + "\n".join(convo_lines) + "\n"
+
     if query:
-        user_prompt += f"\nSpecific Question: {query}\n"
-        
+        user_prompt += f"\nRemember: directly answer this specific question: {query}\n"
+
     user_prompt += "\nProvide direct advice now:"
+
+    # Temporary debug line — check your console to see exactly what RAG
+    # context and question are reaching the model. Remove once confirmed.
+    print(f"[recommender] Prompt sent to {MODEL_NAME}:\n{user_prompt}\n---")
 
     try:
         wrapper = OllamaWithTimeout(timeout_seconds=90)
@@ -230,6 +264,7 @@ def generate_recommendation(
     detector_output: Dict[str, Any],
     query: Optional[str] = None,
     include_history: bool = False,
+    chat_history: Optional[List[Dict]] = None,  # ← New
 ) -> str:
     """Direct alias/wrapper for non-RAG recommendations to keep backward compatibility."""
     return generate_recommendation_with_rag(
@@ -238,6 +273,7 @@ def generate_recommendation(
         query=query,
         rag_context=None,
         include_history=include_history,
+        chat_history=chat_history,
     )
 
 

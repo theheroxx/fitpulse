@@ -876,8 +876,18 @@ class HistoryTab(QWidget):
                     if "created_at" in entry and isinstance(entry["created_at"], datetime):
                         entry["created_at"] = entry["created_at"].isoformat()
                     to_save.append(entry)
-            with open(self.history_file, "w", encoding="utf-8") as f:
-                json.dump(to_save, f, indent=2, ensure_ascii=False)
+
+            # Write to a temp file first, then swap it in — if anything goes
+            # wrong mid-write (crash, disk full, etc.) the real history file
+            # is never left half-written; it's either the old copy or the
+            # new one, never a corrupt in-between state.
+            tmp_path = self.history_file + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                # default=str: catches any value json can't serialize on its
+                # own (e.g. a datetime nested somewhere inside raw_result)
+                # and stringifies it instead of crashing the whole save.
+                json.dump(to_save, f, indent=2, ensure_ascii=False, default=str)
+            os.replace(tmp_path, self.history_file)
         except Exception as ex:
             print(f"[HistoryTab] _save_json_history error: {ex}")
 

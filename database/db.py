@@ -229,6 +229,21 @@ def init_db():
                 )
             """)
 
+            # ─── Chat Messages ───────────────────────────────────
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_user_created
+                ON chat_messages (user_id, created_at)
+            """)
+
             # ─── Default cities ─────────────────────────────────
             cur.execute("SELECT COUNT(*) FROM cities")
             if cur.fetchone()['count'] == 0:
@@ -504,6 +519,50 @@ def delete_record(record_id):
         with conn.cursor() as cur:
             cur.execute("DELETE FROM user_records WHERE id = %s", (record_id,))
             return cur.rowcount > 0
+
+# ─── CHAT MESSAGES ──────────────────────────────────────────────────
+
+def save_chat_message(user_id, role, content):
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO chat_messages (user_id, role, content)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                """, (user_id, role, content))
+                row = cur.fetchone()
+                return row['id']
+    except Exception as e:
+        print(f"Error saving chat message: {e}")
+        return None
+
+def get_recent_chat_messages(user_id, limit=20):
+    """Returns the most recent messages in chronological order (oldest first)."""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT role, content, created_at FROM chat_messages
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT %s
+                """, (user_id, limit))
+                rows = [dict(row) for row in cur.fetchall()]
+                return list(reversed(rows))
+    except Exception as e:
+        print(f"Error getting chat messages: {e}")
+        return []
+
+def clear_chat_messages(user_id):
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM chat_messages WHERE user_id = %s", (user_id,))
+                return cur.rowcount
+    except Exception as e:
+        print(f"Error clearing chat messages: {e}")
+        return 0
 
 # ─── PROFILE ──────────────────────────────────────────────────────
 

@@ -104,11 +104,8 @@ class HomePage(QWidget):
     def __init__(self, main_container=None):
         super().__init__()
         self.main_container = main_container
-        self.sidebar_visible = False
         self.latest_experience = None
-
         self.setup_ui()
-        self.setup_animations()
         self.load_dynamic_data()
 
     # =========================================================
@@ -152,7 +149,9 @@ class HomePage(QWidget):
         self.menu_btn.setFixedSize(40, 40)
         self.menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.menu_btn.setObjectName("topIconBtn")
-        self.menu_btn.clicked.connect(self.toggle_sidebar)
+        # Use the main container's side menu toggle so there's a single menu
+        if self.main_container and hasattr(self.main_container, "toggle_side_menu"):
+            self.menu_btn.clicked.connect(self.main_container.toggle_side_menu)
         icon_layout.addWidget(self.menu_btn)
 
         top_bar.addLayout(icon_layout)
@@ -235,48 +234,9 @@ class HomePage(QWidget):
         bottom_bar.addStretch()
         left_layout.addLayout(bottom_bar)
 
-        # ── SIDEBAR ───────────────────────────────────────────
-        self.sidebar = QFrame()
-        self.sidebar.setObjectName("sidebar")
-        self.sidebar.setMaximumWidth(0)
-        self.sidebar.setMinimumWidth(0)
-
-        sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(14, 28, 14, 28)
-        sidebar_layout.setSpacing(6)
-
-        sidebar_header = QLabel("Menu")
-        sidebar_header.setObjectName("sidebarHeader")
-        sidebar_layout.addWidget(sidebar_header)
-        sidebar_layout.addSpacing(10)
-
-        sidebar_items = [
-            ("📋", "Records"),
-            ("🍽️", "Diet"),
-            ("🏋️", "Exercise Plan"),
-            ("⛅", "Weather"),
-            ("🦴", "Body Posture"),
-        ]
-
-        for index, (icon, label) in enumerate(sidebar_items):
-            btn = QPushButton(f"  {icon}  {label}")
-            btn.setMinimumHeight(52)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setObjectName("sidebarButton")
-            sidebar_layout.addWidget(btn)
-            if index == 0:
-                btn.clicked.connect(self.open_records_page)
-
-        sidebar_layout.addStretch()
-
-        version_lbl = QLabel("FitPulse v1.0")
-        version_lbl.setObjectName("sidebarVersion")
-        version_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sidebar_layout.addWidget(version_lbl)
-
         # ── ASSEMBLE ──────────────────────────────────────────
+        # The application now uses the global side menu in MainContainer.
         self.main_layout.addWidget(left_container)
-        self.main_layout.addWidget(self.sidebar)
 
         self.apply_styles()
 
@@ -447,22 +407,6 @@ class HomePage(QWidget):
     # =========================================================
     # ANIMATIONS & NAVIGATION
     # =========================================================
-
-    def setup_animations(self):
-        self.sidebar_animation = QPropertyAnimation(self.sidebar, b"maximumWidth")
-        self.sidebar_animation.setDuration(320)
-        self.sidebar_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-    def toggle_sidebar(self):
-        self.sidebar_animation.stop()
-        self.sidebar_animation.setStartValue(self.sidebar.width())
-        if self.sidebar_visible:
-            self.sidebar_animation.setEndValue(0)
-            self.sidebar_visible = False
-        else:
-            self.sidebar_animation.setEndValue(230)
-            self.sidebar_visible = True
-        self.sidebar_animation.start()
 
     def open_records_page(self):
         if self.main_container:
