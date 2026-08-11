@@ -1,0 +1,32 @@
+services:
+  fitstat:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: fitstat-app
+    environment:
+      DISPLAY: ${DISPLAY:-host.docker.internal:0}
+      OLLAMA_HOST: http://ollama:11434
+      QT_X11_NO_MITSHM: 1
+    volumes:
+      - ../data:/opt/fitstat/data
+      - ../models:/opt/fitstat/models
+      - ../logs:/opt/fitstat/logs
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+    depends_on:
+      ollama:
+        condition: service_started
+    network_mode: host
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: fitstat-ollama
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+
+volumes:
+  ollama_models:
