@@ -21,7 +21,7 @@ class ExerciseDangerMathModel:
         self.gnn_max = gnn_max
         self.bias_map = bias_map or self._load_bias_map()
         self.sigma_map = self._load_sigma_map()
-        print(f"✅ ED model initialized. Bias map: {self.bias_map}")
+        print(f" ED model initialized. Bias map: {self.bias_map}")
 
     # =========================================================================
     # LOAD GNN BIAS MAP (from ed_calculator/data/)
@@ -41,7 +41,7 @@ class ExerciseDangerMathModel:
                     print(f"   📊 Biases: {bias_map}")
                     return bias_map
             except Exception as e:
-                print(f"   ⚠️ Could not load GNN bias map: {e}")
+                print(f" Could not load GNN bias map: {e}")
         
         # Fallback: try outputs/gnn/
         gnn_path_fallback = PROJECT_ROOT / "outputs" / "gnn" / "FINAL_EXERCISE_DANGER_SCORES_R.csv"
@@ -54,7 +54,7 @@ class ExerciseDangerMathModel:
                     print(f"   ✅ GNN bias map loaded from: {gnn_path_fallback}")
                     return bias_map
             except Exception as e:
-                print(f"   ⚠️ Could not load fallback GNN bias map: {e}")
+                print(f"  Could not load fallback GNN bias map: {e}")
         
         # Final fallback: clustering profiles
         profiles_path = PROJECT_ROOT / "outputs" / "step3_clustering" / "cluster_profiles.csv"
@@ -64,12 +64,12 @@ class ExerciseDangerMathModel:
                 df = pd.read_csv(profiles_path)
                 if "cluster" in df.columns and "ed_offset_vs_global" in df.columns:
                     bias_map = dict(zip(df["cluster"], df["ed_offset_vs_global"]))
-                    print(f"   ✅ Fallback bias map loaded from: {profiles_path}")
+                    print(f"  Fallback bias map loaded from: {profiles_path}")
                     return bias_map
             except Exception as e:
-                print(f"   ⚠️ Could not load fallback bias map: {e}")
+                print(f"   Could not load fallback bias map: {e}")
         
-        print("   ⚠️ No bias map found. Using no regional adjustment.")
+        print("   No bias map found. Using no regional adjustment.")
         return {}
 
     def _load_sigma_map(self) -> dict:
@@ -84,7 +84,7 @@ class ExerciseDangerMathModel:
                     sigma_map = {k: max(v, 3.0) for k, v in sigma_map.items()}
                     return sigma_map
             except Exception as e:
-                print(f"   ⚠️ Could not load sigma map: {e}")
+                print(f" Could not load sigma map: {e}")
         
         # Default sigma (like old code)
         return {0: 5.0, 1: 5.0, 2: 5.0, 3: 5.0, 4: 5.0, 5: 5.0}
