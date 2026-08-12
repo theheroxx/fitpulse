@@ -1,28 +1,12 @@
-# ed_calculator/math_model.py
-"""
-math_model.py
-=============
-Thin wrapper around ed_baseline.py.
-Adds GNN regional adjustment (Step 3) and anomaly override (Step 5).
-All core scoring is delegated to ed_baseline.
-
-UPDATED (2026-08-10):
-  - Added safe defaults (like old ed_engine) to prevent None crashes.
-  - Added Optional import.
-  - All external calls now have fallback defaults.
-  - Maintains compatibility with old UI/API expectations.
-"""
 import json
 import numpy as np
 from pathlib import Path
 import sys
 from typing import Dict, Optional
 
-# ─── Path fix for FitPulse ──────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 
-# ─── Relative imports (same package) ──────────────────────────────
 from .ed_baseline import compute_ed_baseline, _score_to_category
 
 
