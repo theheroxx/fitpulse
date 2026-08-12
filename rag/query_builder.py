@@ -177,21 +177,54 @@ def _extract_documents(context: Dict[str, Any]) -> List[str]:
         return []
 
 
-def format_context_for_prompt(context: Dict[str, Any], max_docs: int = 4) -> str:
-    """Format retrieved context into a structured block for LLM integration (if enabled)."""
-    docs = _extract_documents(context)
-    if not docs:
+def format_context_for_prompt(
+    context: Dict[str, Any],
+    max_docs: int = 5
+) -> str:
+
+    if not context:
         return ""
+
+    documents = context.get("documents", [])
+
+    # Handle:
+    # {"documents": [["doc1", "doc2"]]}
+    if (
+        isinstance(documents, list)
+        and len(documents) > 0
+        and isinstance(documents[0], list)
+    ):
+        documents = documents[0]
+
+    if not documents:
+        return ""
+
+    intent = context.get("intent", "unknown")
+
+    lines = [
+        "",
+        "=== RETRIEVED KNOWLEDGE BASE ===",
+        f"Category: {intent.upper()}",
+        "",
+    ]
+
+    for i, document in enumerate(documents[:max_docs], start=1):
+
+        if not isinstance(document, str):
+            continue
+
+        document = document.strip()
+
+        if not document:
+            continue
+
+        lines.append(f"[Reference {i}]")
+        lines.append(document)
+        lines.append("")
+
+    lines.append("==============================")
     
-    intent = context.get('intent', 'exercises')
-    formatted = f"\n=== RETRIEVED KNOWLEDGE BASE (Category: {intent.upper()}) ===\n"
-    
-    for i, doc in enumerate(docs[:max_docs], 1):
-        clean_doc = doc.strip().replace("\n\n", "\n")
-        formatted += f"\n[Reference {i}]:\n{clean_doc}\n"
-        
-    formatted += "===============================================================\n"
-    return formatted
+    return "\n".join(lines)
 
 
 def generate_rag_response(context: Dict[str, Any], user_query: str = "") -> str:

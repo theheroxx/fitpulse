@@ -2,11 +2,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-# ─── Relative import (same package) ──────────────────────────────
 from .pollution import calculate_air_quality_points
-
-
-# ... rest of the file unchanged
 
 # ----------------------------------------------------------------------------
 # Physiological indices (unchanged - correct)

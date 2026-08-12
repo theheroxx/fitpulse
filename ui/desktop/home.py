@@ -20,6 +20,8 @@ from PySide6.QtCore import (
     QPointF,
 )
 from PySide6.QtGui import QColor, QFont
+from PySide6.QtGui import QPixmap
+from pathlib import Path
 
 from database.db import get_user_records, save_experience_record
 
@@ -74,29 +76,49 @@ class ElevatedCard(QFrame):
 
 class LogoLabel(QLabel):
     """
-    FitPulse logo rendered as rich text with two-tone lettering
-    and a small SVG pulse-line icon.
+    FitStat logo rendered by loading a PNG image from assets.
+    Falls back to rich-text HTML if the image is not found.
     """
-
-    LOGO_HTML = (
-        '<span style="'
-        'font-family: Inter, Helvetica Neue, Arial, sans-serif;'
-        'font-size: 26px;'
-        'font-weight: 800;'
-        'letter-spacing: -0.5px;'
-        '">'
-        f'<span style="color: {NAVY};">FIT</span>'
-        f'<span style="color: {BLUE};">PULSE</span>'
-        '</span>'
-        # Tiny pulse line encoded as Unicode approximation
-        f'<span style="color:{MINT}; font-size:22px; font-weight:900;"> ⚡</span>'
-    )
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setText(self.LOGO_HTML)
-        self.setTextFormat(Qt.TextFormat.RichText)
 
+        # Try to load the logo from assets
+        logo_path = Path(__file__).resolve().parent.parent / "assets" / "fitstat logo.png"
+
+        if logo_path.exists():
+            pixmap = QPixmap(str(logo_path))
+            if not pixmap.isNull():
+                # Scale the logo to a reasonable size while preserving aspect ratio
+                scaled_pixmap = pixmap.scaled(
+                    180, 48,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                self.setPixmap(scaled_pixmap)
+                self.setFixedSize(scaled_pixmap.size())
+                return
+
+        # Fallback to HTML text if image not found
+        self._fallback_html()
+
+    def _fallback_html(self):
+        """Rich-text fallback when the logo image is missing."""
+        html = (
+            '<span style="'
+            'font-family: Inter, Helvetica Neue, Arial, sans-serif;'
+            'font-size: 26px;'
+            'font-weight: 800;'
+            'letter-spacing: -0.5px;'
+            '">'
+            f'<span style="color: {NAVY};">FIT</span>'
+            f'<span style="color: {BLUE};">STAT</span>'
+            '</span>'
+            f'<span style="color:{MINT}; font-size:22px; font-weight:900;"> ⚡</span>'
+        )
+        self.setText(html)
+        self.setTextFormat(Qt.TextFormat.RichText)
+        self.setFixedSize(160, 40)
 
 class HomePage(QWidget):
     """Modern professional fitness dashboard homepage."""

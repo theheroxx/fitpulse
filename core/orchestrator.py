@@ -155,7 +155,7 @@ def ugm3_to_ppm(value: float, molecular_weight: float) -> float:
 
 
 # ============================================================================
-# ED CALCULATION — FIXED with unit conversion for gases
+# ED CALCULATION — FIXED with unit conversion for gases and safe AQI handling
 # ============================================================================
 
 def calculate_detailed_environmental_risk(weather_data, air_data):
@@ -170,6 +170,16 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
             so2_to_aqi, co_to_aqi, aqi_to_epa_index
         )
         
+        # Helper to safely add only valid (non‑None, non‑negative) AQI values
+        def add_valid_aqi(container, name, value):
+            if value is not None:
+                try:
+                    value = float(value)
+                    if value >= 0:
+                        container[name] = value
+                except (TypeError, ValueError):
+                    pass
+
         # Initialize model (singleton)
         if not hasattr(calculate_detailed_environmental_risk, '_model'):
             calculate_detailed_environmental_risk._model = ExerciseDangerMathModel()
@@ -199,20 +209,23 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
         
         # ─── Compute EPA index from all pollutants ────────────────────
         aqi_values = {}
-        if pm25 > 0:
-            aqi_values["PM2.5"] = pm25_to_aqi(pm25)
-        if pm10 > 0:
-            aqi_values["PM10"] = pm10_to_aqi(pm10)
-        if o3_ppm is not None and o3_ppm > 0:
-            aqi_values["O3"] = o3_to_aqi(o3_ppm)
-        if no2_ppm is not None and no2_ppm > 0:
-            aqi_values["NO2"] = no2_to_aqi(no2_ppm)
-        if so2_ppm is not None and so2_ppm > 0:
-            aqi_values["SO2"] = so2_to_aqi(so2_ppm)
-        if co_ppm is not None and co_ppm > 0:
-            aqi_values["CO"] = co_to_aqi(co_ppm)
         
-        epa_index = aqi_to_epa_index(max(aqi_values.values())) if aqi_values else 1
+        if pm25 > 0:
+            add_valid_aqi(aqi_values, "PM2.5", pm25_to_aqi(pm25))
+        if pm10 > 0:
+            add_valid_aqi(aqi_values, "PM10", pm10_to_aqi(pm10))
+        if o3_ppm is not None and o3_ppm > 0:
+            add_valid_aqi(aqi_values, "O3", o3_to_aqi(o3_ppm))
+        if no2_ppm is not None and no2_ppm > 0:
+            add_valid_aqi(aqi_values, "NO2", no2_to_aqi(no2_ppm))
+        if so2_ppm is not None and so2_ppm > 0:
+            add_valid_aqi(aqi_values, "SO2", so2_to_aqi(so2_ppm))
+        if co_ppm is not None and co_ppm > 0:
+            add_valid_aqi(aqi_values, "CO", co_to_aqi(co_ppm))
+        
+        # Filter out any None values (safety net)
+        valid_aqi_values = [v for v in aqi_values.values() if v is not None]
+        epa_index = aqi_to_epa_index(max(valid_aqi_values)) if valid_aqi_values else 1
         
         # ─── Call the model with converted units ─────────────────────
         result = model.predict(

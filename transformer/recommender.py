@@ -167,9 +167,50 @@ def generate_recommendation_with_rag(
     # Fetch Contexts
     if not rag_context:
         try:
-            from rag.query_builder import get_rag_context
-            rag_context = get_rag_context(user, detector_output)
-        except ImportError:
+            from rag.query_builder import (
+                get_rag_context,
+                format_context_for_prompt,
+            )
+
+            # Get structured RAG result
+            rag_result = get_rag_context(
+                user_input=user,
+                detector_output=detector_output,
+                user_query=query or "",
+            )
+
+            print("\n========== RAW RAG RESULT ==========")
+            print("TYPE:", type(rag_result))
+            print("INTENT:", rag_result.get("intent"))
+            print("ERROR:", rag_result.get("error"))
+
+            raw_documents = rag_result.get("documents", [[]])
+
+            if raw_documents and isinstance(raw_documents, list):
+                if len(raw_documents) > 0 and isinstance(raw_documents[0], list):
+                    print("DOCUMENT COUNT:", len(raw_documents[0]))
+                else:
+                    print("DOCUMENT COUNT:", len(raw_documents))
+            else:
+                print("DOCUMENT COUNT: 0")
+
+            print("====================================\n")
+
+            # Convert retrieved documents into LLM-readable context
+            rag_context = format_context_for_prompt(
+                rag_result,
+                max_docs=5,
+            )
+
+            print("\n========== FORMATTED RAG CONTEXT ==========")
+            print("TYPE:", type(rag_context))
+            print("LENGTH:", len(rag_context or ""))
+            print(repr(rag_context))
+            print("============================================\n")
+
+        except Exception as e:
+            print(f"[RAG] Context generation failed: {e}")
+            traceback.print_exc()
             rag_context = ""
 
     history_context = ""
@@ -238,6 +279,18 @@ def generate_recommendation_with_rag(
 
     # Temporary debug line — check your console to see exactly what RAG
     # context and question are reaching the model. Remove once confirmed.
+    print("\n========== RAG DEBUG ==========")
+    print("RAG CONTEXT TYPE:", type(rag_context))
+    print("RAG CONTEXT LENGTH:", len(rag_context or ""))
+    print("RAG CONTEXT CONTENT:")
+    print(rag_context or "[EMPTY]")
+    print("================================\n")
+    print("\n========== RAG FINAL DEBUG ==========")
+    print("TYPE:", type(rag_context))
+    print("LEN:", len(rag_context or ""))
+    print("REPR:", repr(rag_context))
+    print("LINES:", (rag_context or "").splitlines())
+    print("======================================")
     print(f"[recommender] Prompt sent to {MODEL_NAME}:\n{user_prompt}\n---")
 
     try:

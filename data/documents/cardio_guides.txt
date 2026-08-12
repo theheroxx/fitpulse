@@ -1290,5 +1290,3 @@ Beef tallow, seed oils, and full-f
 
 ------------------------------------------------------------
 
-
-NOTE: HTTPSConnectionPool(host='api-inference.huggingface.co', port=443): Max retries exceeded with url: /models/mistralai/Mistral-7B-Instruct-v0.3 (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
