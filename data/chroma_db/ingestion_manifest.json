@@ -191,7 +191,7 @@
     "loader": "double_newline"
   },
   "cardio_guides.txt": {
-    "hash": "582b0f22190171a8f75411b9732b7cbf6b1c5dc2dcaa7eaaac2a8375bf79ecf6",
+    "hash": "183062ce6974fc29d3eb04f3924666f3dc137cc34828a5fa594a9945adc175f9",
     "ids": [
       "cardio_guides_0",
       "cardio_guides_1",
@@ -235,8 +235,22 @@
       "cardio_guides_39",
       "cardio_guides_40",
       "cardio_guides_41",
-      "cardio_guides_42",
-      "cardio_guides_43"
+      "cardio_guides_42"
+    ],
+    "loader": "double_newline"
+  },
+  "High_cardio.txt": {
+    "hash": "8123a99bd02c3b5e0ceb881ee6270f2e11551144a3d93fa84d11f6f578911ac1",
+    "ids": [
+      "High_cardio_0",
+      "High_cardio_1",
+      "High_cardio_2",
+      "High_cardio_3",
+      "High_cardio_4",
+      "High_cardio_5",
+      "High_cardio_6",
+      "High_cardio_7",
+      "High_cardio_8"
     ],
     "loader": "double_newline"
   }

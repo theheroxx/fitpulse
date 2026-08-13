@@ -1,17 +1,10 @@
-"""
-FitStat RAG Retriever Test
-Tests the current retriever + reranker pipeline.
-
-Run:
-    python test_retriever.py
-
-Optional:
-    python test_retriever.py "How to maximize my VO2max?"
-"""
-
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Change to project root directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)  # ← This fixes the relative path issue
+sys.path.insert(0, PROJECT_ROOT)
 
 """
 FitStat RAG Retriever + Reranker Test

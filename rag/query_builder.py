@@ -16,15 +16,17 @@ logger = logging.getLogger(__name__)
 
 def build_query(user_input: Dict[str, Any], detector_output: Dict[str, Any]) -> str:
     """
-    Build comprehensive query string for RAG retrieval.
-    Combines user profile, health data, and risk assessment into a searchable string.
+    Build natural language query for better semantic retrieval.
+    
+    Creates a concise, natural language query that embedding models understand better
+    than pipe-separated attribute lists.
     
     Args:
         user_input: User profile data (Age, HealthCondition, FitnessLevel, ActivityType, DurationMins, etc.)
         detector_output: Risk detector output (label, reasons, warnings)
     
     Returns:
-        Pipe-separated query string for vector search
+        Natural language query string for vector search
     """
     if not user_input:
         user_input = {}
@@ -33,59 +35,57 @@ def build_query(user_input: Dict[str, Any], detector_output: Dict[str, Any]) -> 
     
     query_parts = []
     
-    # 1. User profile fields
-    age = user_input.get('Age', 'unknown')
-    if age and age != 'unknown':
-        query_parts.append(f"Age {age}")
+    # Extract key information
+    health = user_input.get('HealthCondition', '')
+    fitness = user_input.get('FitnessLevel', '')
+    activity = user_input.get('ActivityType', '')
+    goals = user_input.get('Goals', '')
     
-    gender = user_input.get('Gender', 'unknown')
-    if gender and gender != 'unknown':
-        query_parts.append(f"Gender {gender}")
-
-    health = user_input.get('HealthCondition', 'unknown')
+    # Build natural language phrases
+    
+    # Health condition is most important for safety
     if health and health != 'unknown':
-        query_parts.append(f"Health condition: {health}")
+        query_parts.append(f"exercises for someone with {health}")
     
-    fitness = user_input.get('FitnessLevel', 'unknown')
-    if fitness and fitness != 'unknown':
-        query_parts.append(f"Fitness level: {fitness}")
-    
-    activity = user_input.get('ActivityType', 'unknown')
+    # Activity type
     if activity and activity != 'unknown':
-        query_parts.append(f"Activity: {activity}")
+        query_parts.append(f"during {activity}")
     
-    duration = user_input.get('DurationMins', None)
-    if duration is not None and duration != 'unknown':
-        query_parts.append(f"Duration: {duration} minutes")
+    # Fitness level
+    if fitness and fitness != 'unknown':
+        query_parts.append(f"for {fitness} fitness level")
     
-    weather = user_input.get('Weather', 'unknown')
-    if weather and weather != 'unknown':
-        query_parts.append(f"Environment: {weather}")
-
-    goals = user_input.get('Goals', 'unknown')
+    # Goals
     if goals and goals != 'unknown':
-        query_parts.append(f"Goals: {goals}")
-
-    # 2. Risk assessment & detector output
-    risk_label = detector_output.get('label', None)
-    if risk_label:
-        query_parts.append(f"Risk level: {risk_label}")
+        query_parts.append(f"to achieve {goals}")
     
-    reasons = detector_output.get('reasons', [])
-    if reasons:
-        reasons_str = ', '.join(reasons[:3]) if isinstance(reasons, list) else str(reasons)
-        query_parts.append(f"Risk factors: {reasons_str}")
-
+    # Add risk warnings if any
     warnings = detector_output.get('warnings', [])
-    if warnings:
-        warnings_str = ', '.join(warnings[:2]) if isinstance(warnings, list) else str(warnings)
-        query_parts.append(f"Safety warnings: {warnings_str}")
-
-    # If no meaningful parts, return a generic fitness query
-    if not query_parts:
-        return "fitness exercise safety recommendations"
+    if warnings and isinstance(warnings, list) and len(warnings) > 0:
+        # Take first warning and make it natural
+        warning_text = warnings[0].lower()
+        if "consult" in warning_text or "doctor" in warning_text:
+            query_parts.append("with medical precautions")
+        else:
+            query_parts.append(f"considering {warning_text}")
     
-    return " | ".join(query_parts)
+    # Add risk label if significant
+    risk_label = detector_output.get('label', '')
+    if risk_label and risk_label.lower() in ['high', 'medium']:
+        query_parts.append("safe exercise recommendations")
+    
+    # If no specific parts, use generic query
+    if not query_parts:
+        return "safe exercise recommendations for general fitness"
+    
+    # Join in natural language
+    query = " ".join(query_parts)
+    
+    # Limit length (embedding models work best with shorter queries)
+    if len(query) > 200:
+        query = query[:200]
+    
+    return query
 
 
 def get_rag_context(
@@ -108,12 +108,17 @@ def get_rag_context(
     Returns:
         Dict with documents, raw_results, intent, and error fields
     """
-    # Build structured search query
+    # Build natural language search query
     search_query = build_query(user_input, detector_output)
     
     # Append user's natural language question
     if user_query and user_query.strip():
-        search_query += f" | Question: {user_query.strip()}"
+        # If we already have a good query, combine naturally
+        if search_query and len(search_query) > 20:
+            search_query = f"{search_query} {user_query.strip()}"
+        else:
+            # User query is the primary query
+            search_query = user_query.strip()
     
     # If query is empty, return empty context
     if not search_query.strip():

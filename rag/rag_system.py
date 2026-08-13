@@ -182,21 +182,29 @@ class VectorStore:
             logger.info(f"✅ Saved {len(docs)} to {f}")
     
     def search(self, col, query, n=5):
-        j = self._json_search(col, query, n)
-        if j['documents'][0]:
-            return j
+        # Try ChromaDB first if available
         if self._ok and col in self.collections:
             with self._lock:
                 try:
                     emb = EmbeddingManager()
                     q_emb = emb.encode_single(query)
-                    return self.collections[col].query(
+                    chroma_result = self.collections[col].query(
                         query_embeddings=[q_emb],
                         n_results=n,
                         include=['documents', 'metadatas', 'distances']
                     )
-                except Exception:
-                    pass
+                    # If ChromaDB returned documents, use them
+                    if chroma_result.get('documents') and chroma_result['documents'][0]:
+                        return chroma_result
+                except Exception as e:
+                    logger.warning(f"ChromaDB search failed for {col}: {e}")
+        
+        # Fallback to JSON search
+        j = self._json_search(col, query, n)
+        if j['documents'][0]:
+            return j
+        
+        # Final fallback
         return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
     
     def _json_search(self, col, query, n):
@@ -205,16 +213,30 @@ class VectorStore:
             return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
         try:
             data = json.load(open(f, encoding='utf-8'))
-            words = query.lower().split()
+            # Use important words only (filter out common words)
+            stopwords = {'the', 'a', 'an', 'is', 'are', 'for', 'with', 'and', 'or', 'in', 'on', 'to', 'of', 'how', 'what', 'should', 'can', 'age', 'gender', 'unknown', 'fitness', 'level', 'activity', 'duration', 'minutes', 'environment', 'goals'}
+            
+            query_words = query.lower().split()
+            important_words = [w for w in query_words if w not in stopwords and len(w) > 2]
+            
             scored = []
             for item in data:
                 doc = item['document'].lower()
-                s = sum(1 for w in words if w in doc)
+                # Score based on important words
+                s = sum(1 for w in important_words if w in doc)
+                # Bonus for exact phrase matches
+                if query.lower() in doc:
+                    s += 5
                 if s:
                     scored.append((s, item))
+            
             scored.sort(key=lambda x: x[0], reverse=True)
             top = [m for _, m in scored[:n]]
-            return {'documents': [[t['document'] for t in top]], 'metadatas': [[t['metadata'] for t in top]], 'distances': [[0.1] * len(top)]}
+            return {
+                'documents': [[t['document'] for t in top]], 
+                'metadatas': [[t['metadata'] for t in top]], 
+                'distances': [[0.1] * len(top)]
+            }
         except Exception:
             return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
     

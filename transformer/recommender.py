@@ -24,7 +24,7 @@ OPTS_RECOMMENDATION = {
     "temperature": 0.3,
     "top_p": 0.9,
     "num_predict": 250,
-    "num_ctx": 2048,
+    "num_ctx": 4096,  # Increased context window
     "repeat_penalty": 1.1,
     "stop": STOP_SAFE,
 }
@@ -33,7 +33,7 @@ OPTS_TABLE = {
     "temperature": 0.1,
     "top_p": 0.9,
     "num_predict": 600,
-    "num_ctx": 2048,
+    "num_ctx": 4096,  # Increased context window
     "repeat_penalty": 1.1,
     "stop": STOP_SAFE,
 }
@@ -44,7 +44,7 @@ class TimeoutError(Exception):
 
 
 class OllamaWithTimeout:
-    def __init__(self, timeout_seconds=90):
+    def __init__(self, timeout_seconds=120):  # Increased from 90 to 120
         self.timeout_seconds = timeout_seconds
         self.response = None
         self.error = None
@@ -74,6 +74,86 @@ class OllamaWithTimeout:
             except TypeError:
                 return client.chat(model=model, messages=messages, options=options)
         return self._call(_do)
+
+
+# ---------------------------------------------------------------------------
+# RAG Context Limiting
+# ---------------------------------------------------------------------------
+def limit_rag_context(rag_context: str, max_chars: int = 2000) -> str:
+    """
+    Limit RAG context to prevent LLM timeout.
+    Keeps the most relevant information while staying within limits.
+    """
+    if not rag_context or len(rag_context) <= max_chars:
+        return rag_context
+    
+    # Split into lines
+    lines = rag_context.split('\n')
+    
+    # Extract document references (lines starting with [Reference or [Ref)
+    references = []
+    other_lines = []
+    
+    current_ref = None
+    
+    for line in lines:
+        # Detect reference markers
+        if re.match(r'^\[(Reference|Ref)\s*\d*\]', line.strip()):
+            if current_ref:
+                references.append(current_ref)
+            current_ref = line.strip()
+        elif current_ref is not None:
+            # Append to current reference
+            if current_ref in references:
+                # Find and update
+                idx = references.index(current_ref)
+                references[idx] = current_ref + " " + line.strip()
+            else:
+                current_ref = current_ref + " " + line.strip()
+        else:
+            if line.strip():
+                other_lines.append(line.strip())
+    
+    # Add final reference if exists
+    if current_ref and current_ref not in references:
+        references.append(current_ref)
+    
+    # Build limited context
+    limited_parts = []
+    current_length = 0
+    
+    # Add header if present
+    for line in other_lines[:5]:  # Keep first 5 non-reference lines
+        if current_length + len(line) > max_chars * 0.3:
+            break
+        limited_parts.append(line)
+        current_length += len(line)
+    
+    # Add references (truncate each to 400 chars)
+    for ref in references:
+        # Truncate individual reference
+        if len(ref) > 400:
+            # Find sentence boundary
+            truncated = ref[:400]
+            last_period = truncated.rfind('.')
+            if last_period > 200:
+                ref = truncated[:last_period + 1] + "..."
+            else:
+                ref = truncated + "..."
+        
+        if current_length + len(ref) > max_chars:
+            break
+        
+        limited_parts.append(ref)
+        current_length += len(ref)
+    
+    truncated = '\n\n'.join(limited_parts)
+    
+    # Add truncation notice
+    if len(rag_context) > max_chars:
+        truncated += f"\n\n... [truncated from {len(rag_context)} to {max_chars} chars]"
+    
+    return truncated
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +209,7 @@ def generate_schedule(user: Dict[str, Any], plan_type: str = "workout") -> str:
     )
 
     try:
-        wrapper = OllamaWithTimeout(90)
+        wrapper = OllamaWithTimeout(120)
         resp = wrapper.chat(
             MODEL_NAME,
             [
@@ -179,34 +259,18 @@ def generate_recommendation_with_rag(
                 user_query=query or "",
             )
 
-            print("\n========== RAW RAG RESULT ==========")
-            print("TYPE:", type(rag_result))
-            print("INTENT:", rag_result.get("intent"))
-            print("ERROR:", rag_result.get("error"))
-
-            raw_documents = rag_result.get("documents", [[]])
-
-            if raw_documents and isinstance(raw_documents, list):
-                if len(raw_documents) > 0 and isinstance(raw_documents[0], list):
-                    print("DOCUMENT COUNT:", len(raw_documents[0]))
-                else:
-                    print("DOCUMENT COUNT:", len(raw_documents))
-            else:
-                print("DOCUMENT COUNT: 0")
-
-            print("====================================\n")
-
             # Convert retrieved documents into LLM-readable context
             rag_context = format_context_for_prompt(
                 rag_result,
-                max_docs=5,
+                max_docs=3,  # Reduced from 5 to 3
             )
+            
+            # CRITICAL: Limit context size to prevent timeout
+            rag_context = limit_rag_context(rag_context, max_chars=2000)
 
-            print("\n========== FORMATTED RAG CONTEXT ==========")
-            print("TYPE:", type(rag_context))
-            print("LENGTH:", len(rag_context or ""))
-            print(repr(rag_context))
-            print("============================================\n")
+            # Debug output (reduced verbosity)
+            print(f"\n[RAG] Intent: {rag_result.get('intent')}, Error: {rag_result.get('error')}")
+            print(f"[RAG] Context length: {len(rag_context or '')} chars")
 
         except Exception as e:
             print(f"[RAG] Context generation failed: {e}")
@@ -250,13 +314,8 @@ def generate_recommendation_with_rag(
     if history_context:
         user_prompt += f"{history_context}\n"
 
-    # ─── Recent conversation, flattened as plain text (not separate chat
-    # turns — this fine-tuned model expects a single system+user exchange,
-    # not a real multi-turn messages array). ──────────────────────────
+    # ─── Recent conversation, flattened as plain text ──────────────────────
     if chat_history:
-        # The caller (chat_tab) appends the current question to its message
-        # log before slicing, so the last entry is usually this same query —
-        # drop it here so it isn't duplicated with the question above.
         history_turns = [
             m for m in chat_history
             if not (m.get("role") == "user" and m.get("content") == query)
@@ -277,24 +336,13 @@ def generate_recommendation_with_rag(
 
     user_prompt += "\nProvide direct advice now:"
 
-    # Temporary debug line — check your console to see exactly what RAG
-    # context and question are reaching the model. Remove once confirmed.
-    print("\n========== RAG DEBUG ==========")
-    print("RAG CONTEXT TYPE:", type(rag_context))
-    print("RAG CONTEXT LENGTH:", len(rag_context or ""))
-    print("RAG CONTEXT CONTENT:")
-    print(rag_context or "[EMPTY]")
-    print("================================\n")
-    print("\n========== RAG FINAL DEBUG ==========")
-    print("TYPE:", type(rag_context))
-    print("LEN:", len(rag_context or ""))
-    print("REPR:", repr(rag_context))
-    print("LINES:", (rag_context or "").splitlines())
-    print("======================================")
-    print(f"[recommender] Prompt sent to {MODEL_NAME}:\n{user_prompt}\n---")
+    # Debug output
+    print(f"[recommender] Prompt length: {len(user_prompt)} chars")
+    print(f"[recommender] RAG context length: {len(rag_context or '')} chars")
+    print(f"[recommender] Sending to {MODEL_NAME}...")
 
     try:
-        wrapper = OllamaWithTimeout(timeout_seconds=90)
+        wrapper = OllamaWithTimeout(timeout_seconds=120)
         response = wrapper.chat(
             MODEL_NAME,
             [
@@ -307,6 +355,9 @@ def generate_recommendation_with_rag(
         cleaned = clean_response(response["message"]["content"])
         return cleaned if cleaned else _fallback(label)
 
+    except TimeoutError as e:
+        print(f"Timeout error: {e}")
+        return _fallback(label)
     except Exception as e:
         print(f"Error generating recommendation: {e}")
         return _fallback(label)
@@ -317,7 +368,7 @@ def generate_recommendation(
     detector_output: Dict[str, Any],
     query: Optional[str] = None,
     include_history: bool = False,
-    chat_history: Optional[List[Dict]] = None,  # ← New
+    chat_history: Optional[List[Dict]] = None,
 ) -> str:
     """Direct alias/wrapper for non-RAG recommendations to keep backward compatibility."""
     return generate_recommendation_with_rag(
