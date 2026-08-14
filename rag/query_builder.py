@@ -139,7 +139,7 @@ def get_rag_context(
             [sys.executable, script_path, search_query],
             capture_output=True,
             text=True,
-            timeout=12
+            timeout=40
         )
         
         if result.returncode == 0 and result.stdout.strip():
