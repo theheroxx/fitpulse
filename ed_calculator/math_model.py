@@ -8,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 
 from .ed_baseline import compute_ed_baseline, _score_to_category
+from .knn_cluster_matcher import predict_cluster
 
 
 class ExerciseDangerMathModel:
@@ -21,14 +22,9 @@ class ExerciseDangerMathModel:
         self.gnn_max = gnn_max
         self.bias_map = bias_map or self._load_bias_map()
         self.sigma_map = self._load_sigma_map()
-        print(f" ED model initialized. Bias map: {self.bias_map}")
+        print(f"ED model initialized. Bias map: {self.bias_map}")
 
-    # =========================================================================
-    # LOAD GNN BIAS MAP (from ed_calculator/data/)
-    # =========================================================================
     def _load_bias_map(self) -> dict:
-        """Load GNN bias map from ed_calculator/data/ (or fallback)."""
-        # Primary location: ed_calculator/data/
         gnn_path = Path(__file__).resolve().parent / "data" / "FINAL_EXERCISE_DANGER_SCORES_R.csv"
         
         if gnn_path.exists():
@@ -37,13 +33,12 @@ class ExerciseDangerMathModel:
                 df = pd.read_csv(gnn_path)
                 if "cluster" in df.columns and "gnn_bias" in df.columns:
                     bias_map = df.groupby("cluster")["gnn_bias"].mean().to_dict()
-                    print(f"   ✅ GNN bias map loaded from: {gnn_path}")
-                    print(f"   📊 Biases: {bias_map}")
+                    print(f"Bias map loaded from: {gnn_path}")
+                    print(f"Biases: {bias_map}")
                     return bias_map
             except Exception as e:
-                print(f" Could not load GNN bias map: {e}")
+                print(f"Failed to load GNN bias map: {e}")
         
-        # Fallback: try outputs/gnn/
         gnn_path_fallback = PROJECT_ROOT / "outputs" / "gnn" / "FINAL_EXERCISE_DANGER_SCORES_R.csv"
         if gnn_path_fallback.exists():
             try:
@@ -51,12 +46,11 @@ class ExerciseDangerMathModel:
                 df = pd.read_csv(gnn_path_fallback)
                 if "cluster" in df.columns and "gnn_bias" in df.columns:
                     bias_map = df.groupby("cluster")["gnn_bias"].mean().to_dict()
-                    print(f"   ✅ GNN bias map loaded from: {gnn_path_fallback}")
+                    print(f"Bias map loaded from: {gnn_path_fallback}")
                     return bias_map
             except Exception as e:
-                print(f"  Could not load fallback GNN bias map: {e}")
+                print(f"Failed to load fallback bias map: {e}")
         
-        # Final fallback: clustering profiles
         profiles_path = PROJECT_ROOT / "outputs" / "step3_clustering" / "cluster_profiles.csv"
         if profiles_path.exists():
             try:
@@ -64,16 +58,15 @@ class ExerciseDangerMathModel:
                 df = pd.read_csv(profiles_path)
                 if "cluster" in df.columns and "ed_offset_vs_global" in df.columns:
                     bias_map = dict(zip(df["cluster"], df["ed_offset_vs_global"]))
-                    print(f"  Fallback bias map loaded from: {profiles_path}")
+                    print(f"Fallback bias map loaded from: {profiles_path}")
                     return bias_map
             except Exception as e:
-                print(f"   Could not load fallback bias map: {e}")
+                print(f"Failed to load fallback bias map: {e}")
         
-        print("   No bias map found. Using no regional adjustment.")
+        print("No bias map found. Using no regional adjustment.")
         return {}
 
     def _load_sigma_map(self) -> dict:
-        """Load per-cluster confidence (sigma) for confidence ranges."""
         gnn_path = Path(__file__).resolve().parent / "data" / "FINAL_EXERCISE_DANGER_SCORES_R.csv"
         if gnn_path.exists():
             try:
@@ -84,14 +77,10 @@ class ExerciseDangerMathModel:
                     sigma_map = {k: max(v, 3.0) for k, v in sigma_map.items()}
                     return sigma_map
             except Exception as e:
-                print(f" Could not load sigma map: {e}")
+                print(f"Failed to load sigma map: {e}")
         
-        # Default sigma (like old code)
         return {0: 5.0, 1: 5.0, 2: 5.0, 3: 5.0, 4: 5.0, 5: 5.0}
 
-    # =========================================================================
-    # MAIN PREDICTION (with safe defaults like old ed_engine)
-    # =========================================================================
     def predict(
         self,
         temperature_celsius: float = 22.0,
@@ -107,21 +96,28 @@ class ExerciseDangerMathModel:
         air_quality_Carbon_Monoxide: Optional[float] = None,
         cluster_id: Optional[int] = None,
         anomaly_flag: bool = False,
+        use_knn: bool = False,
     ) -> dict:
-        """
-        Single‑observation prediction with safe defaults (like old ed_engine).
-        
-        All parameters have fallback defaults so that None values from the API
-        do not crash the system.
-        """
-        # ─── Convert None to defaults (defensive) ──────────────────────
         temperature_celsius = temperature_celsius if temperature_celsius is not None else 22.0
         humidity = humidity if humidity is not None else 45.0
         wind_kph = wind_kph if wind_kph is not None else 10.0
         uv_index = uv_index if uv_index is not None else 3.0
         air_quality_us_epa_index = air_quality_us_epa_index if air_quality_us_epa_index is not None else 1.0
 
-        # ─── Anomaly override ──────────────────────────────────────────
+        knn_cluster_used = False
+        if cluster_id is None and use_knn:
+            try:
+                pm25_for_knn = air_quality_PM2_5 if air_quality_PM2_5 is not None else 0.0
+                cluster_id = predict_cluster(
+                    temp=temperature_celsius,
+                    pm25=pm25_for_knn
+                )
+                knn_cluster_used = True
+                print(f"KNN predicted cluster: {cluster_id}")
+            except Exception as e:
+                print(f"KNN prediction failed: {e}")
+                cluster_id = None
+
         if anomaly_flag:
             return {
                 "ED": 100.0,
@@ -133,13 +129,13 @@ class ExerciseDangerMathModel:
                 "max_component": 0.0,
                 "confidence_range": "85 - 100",
                 "note": "Anomaly detected – exercise not advised.",
-                "status": "ANOMALY DETECTED",          # old compatibility
+                "status": "ANOMALY DETECTED",
                 "AI_Bias_Applied": 0.0,
-                "Cluster": -1,
+                "Cluster": cluster_id if cluster_id is not None else -1,
                 "Physics_Component": 100.0,
+                "knn_cluster_used": knn_cluster_used,
             }
 
-        # ─── Build weather dict ────────────────────────────────────────
         weather = {
             "temperature_celsius": temperature_celsius,
             "humidity": humidity,
@@ -148,7 +144,6 @@ class ExerciseDangerMathModel:
             "air_quality_us-epa-index": air_quality_us_epa_index,
         }
         
-        # Only add pollutants if they are not None
         if air_quality_PM2_5 is not None:
             weather["air_quality_PM2.5"] = air_quality_PM2_5
         if air_quality_PM10 is not None:
@@ -162,34 +157,27 @@ class ExerciseDangerMathModel:
         if air_quality_Carbon_Monoxide is not None:
             weather["air_quality_Carbon_Monoxide"] = air_quality_Carbon_Monoxide
 
-        # ─── Call baseline ─────────────────────────────────────────────
         base_result = compute_ed_baseline(weather)
         baseline_ed = base_result["ed_score"]
         components = base_result["components"]
         baseline_category = base_result["ed_category"]
 
-        # ─── Regional adjustment ──────────────────────────────────────
         regional_adj = 0.0
         if cluster_id is not None and self.bias_map:
             regional_adj = self.bias_map.get(cluster_id, 0.0)
         adj = float(max(self.gnn_min, min(self.gnn_max, regional_adj)))
 
-        # ─── Final ED ─────────────────────────────────────────────────
         final_ed = float(np.clip(baseline_ed + adj, 0, 100))
 
-        # ─── Category ─────────────────────────────────────────────────
         final_category = _score_to_category(np.array([final_ed]))[0]
 
-        # ─── Safety floor ─────────────────────────────────────────────
         max_component = max(components.values())
         safety_floor_activated = max_component > 70
 
-        # ─── Confidence range ─────────────────────────────────────────
         sigma = self.sigma_map.get(cluster_id, 5.0) if cluster_id is not None else 5.0
         range_min = max(0, int(final_ed - sigma))
         range_max = min(100, int(final_ed + sigma))
 
-        # ─── Risk level ───────────────────────────────────────────────
         risk_map = {
             "ED_VERY_DANGEROUS": "EXTREME",
             "ED_DANGEROUS": "DANGEROUS",
@@ -199,7 +187,6 @@ class ExerciseDangerMathModel:
         }
         risk_level = risk_map.get(final_category, "UNKNOWN")
 
-        # ─── Return with old compatibility fields ─────────────────────
         return {
             "ED": round(final_ed, 2),
             "Risk_Level": risk_level,
@@ -210,16 +197,13 @@ class ExerciseDangerMathModel:
             "safety_floor_activated": safety_floor_activated,
             "max_component": round(max_component, 2),
             "confidence_range": f"{range_min} - {range_max}",
-            # ─── Old interface compatibility ──────────────────────────
             "AI_Bias_Applied": round(adj, 2),
             "Cluster": cluster_id if cluster_id is not None else -1,
             "Physics_Component": round(baseline_ed, 2),
-            "status": "NORMAL",   # no anomaly
+            "status": "NORMAL",
+            "knn_cluster_used": knn_cluster_used,
         }
 
-    # =========================================================================
-    # LEGACY WRAPPER (for old calculate_danger_score calls)
-    # =========================================================================
     def calculate_danger_score(
         self,
         PL: float,
@@ -234,29 +218,25 @@ class ExerciseDangerMathModel:
         no2: float = 0.0,
         so2: float = 0.0
     ) -> Dict:
-        """
-        Wrapper to maintain compatibility with old interface.
-        """
-        # Convert old parameter names to new
         result = self.predict(
             temperature_celsius=WD,
             humidity=humidity if humidity is not None else 50.0,
             wind_kph=wind_speed if wind_speed is not None else 10.0,
             uv_index=uv_index if uv_index is not None else 3.0,
-            air_quality_us_epa_index=1,  # Default, could be improved
+            air_quality_us_epa_index=1,
             air_quality_PM2_5=PL if PL > 0 else None,
             air_quality_PM10=pm10 if pm10 > 0 else None,
             air_quality_Ozone=o3 if o3 > 0 else None,
             air_quality_Nitrogen_dioxide=no2 if no2 > 0 else None,
             air_quality_Sulphur_dioxide=so2 if so2 > 0 else None,
             air_quality_Carbon_Monoxide=co if co > 0 else None,
-            cluster_id=None,  # KNN not implemented
+            cluster_id=None,
+            use_knn=True,
         )
         
-        # Add old fields
         result['risk_level'] = result['Risk_Level']
         result['status_text'] = result.get('status', result['Risk_Level'])
-        result['temperature_score'] = result['breakdown'].get('heat', 0) * 2.22  # approximate scaling
+        result['temperature_score'] = result['breakdown'].get('heat', 0) * 2.22
         result['pollution_score'] = result['breakdown'].get('air', 0)
         result['interaction_score'] = round(
             float(np.sqrt(
@@ -278,5 +258,4 @@ class ExerciseDangerMathModel:
         return result
 
 
-# ─── Keep the old class name for backward compatibility ────────────
 ExerciseDangerPredictor = ExerciseDangerMathModel

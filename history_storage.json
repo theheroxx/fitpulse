@@ -1,5 +1,338 @@
 [
   {
+    "id": "67f80b10-b856-4b3c-b3d7-b40d446eec27",
+    "type": "analysis",
+    "created_at": "Aug 14, 2026  •  01:29 PM",
+    "status": "SAFE",
+    "subtitle": "ML prediction (confidence: 0.79)",
+    "reasons": [
+      "ML prediction (confidence: 0.79)"
+    ],
+    "confidence": 0.7922863318481648,
+    "score": 20,
+    "ai_recommendation": "With your fitness level, low cardio is a good match. Warm up gradually before starting, and cool down afterward. Stay hydrated, and monitor how you feel during the workout.",
+    "experience_emoji": "😐",
+    "raw_result": {
+      "ED": 8.2,
+      "air_quality": {
+        "co": 489.0,
+        "no2": 33.3,
+        "o3": 93.0,
+        "pm10": 65.4,
+        "pm25": 27.9,
+        "so2": 20.7
+      },
+      "detailed_risk": {
+        "BIAS": "-9.8",
+        "DETAILS": {
+          "AI_Bias_Applied": -9.84,
+          "Category": "ED_VERY_SAFE",
+          "Cluster": 3,
+          "ED": 8.2,
+          "Physics_Component": 18.03,
+          "Risk_Level": "VERY SAFE",
+          "baseline_ed": 18.03,
+          "breakdown": {
+            "air": 18.034334763948497,
+            "cold": 0.0,
+            "heat": 0.0,
+            "synergy": 0.0,
+            "uv": 0.0
+          },
+          "confidence_range": "0 - 46",
+          "knn_cluster_used": false,
+          "max_component": 18.03,
+          "regional_adjustment": -9.84,
+          "safety_floor_activated": false,
+          "status": "NORMAL"
+        },
+        "FINAL_SCORE": 8.2,
+        "KNN_CLUSTER": 3,
+        "KNN_CLUSTER_USED": true,
+        "RANGE": "0 - 46",
+        "STATUS": "VERY SAFE"
+      },
+      "detector": {
+        "confidence": 0.7922863318481648,
+        "label": "Safe",
+        "normalized_input": {
+          "ActivityType": "Low Cardio",
+          "Age": 14,
+          "DurationMins": 30,
+          "ED": 8.2,
+          "FitnessLevel": "Low",
+          "HealthCondition": "Healthy",
+          "TimeOfDay": "Morning"
+        },
+        "reasons": [
+          "ML prediction (confidence: 0.79)"
+        ],
+        "score": 20
+      },
+      "ed_recommendations": [
+        "✅ Good conditions for outdoor exercise.",
+        "\n🏋️ Recommended Exercises:",
+        "  • {'id': 18, 'name': 'Burpees', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 10, 'calories_per_hour': 450, 'benefits': 'Full body exercise, builds explosive strength', 'precautions': 'Use proper form, modify if needed', 'contraindications': 'Joint issues, Heart condition', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
+        "  • {'id': 5, 'name': 'Cycling', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Strengthens legs, improves endurance', 'precautions': 'Wear helmet, check brakes', 'contraindications': '', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
+        "  • {'id': 10, 'name': 'Dancing', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 45, 'calories_per_hour': 350, 'benefits': 'Fun cardio, improves coordination', 'precautions': 'Stay hydrated, wear comfortable shoes', 'contraindications': '', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
+        "  • {'id': 14, 'name': 'Elliptical', 'type': 'Cardio', 'intensity': 'Medium', 'duration_minutes': 30, 'calories_per_hour': 350, 'benefits': 'Low impact cardio, easy on joints', 'precautions': 'Maintain posture, adjust resistance', 'contraindications': '', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
+        "  • {'id': 7, 'name': 'HIIT', 'type': 'Cardio', 'intensity': 'High', 'duration_minutes': 15, 'calories_per_hour': 500, 'benefits': 'Efficient calorie burn, improves fitness', 'precautions': 'Warm up properly, take rest periods', 'contraindications': 'Heart condition, Asthma', 'created_at': datetime.datetime(2026, 5, 10, 9, 54, 27)}",
+        "\n🥗 Recommended Foods:",
+        "  • {'id': 7, 'name': 'Almonds', 'category': 'Nuts', 'calories_per_100g': 579.0, 'protein_g': 21.0, 'carbs_g': 22.0, 'fat_g': 50.0, 'fiber_g': 12.0, 'glycemic_index': 0, 'benefits': 'Healthy fats, vitamin E', 'allergens': 'Tree nuts', 'created_at': datetime.datetime(2026, 5, 16, 8, 37, 51)}",
+        "  • {'id': 10, 'name': 'Avocado', 'category': 'Fruits', 'calories_per_100g': 160.0, 'protein_g': 2.0, 'carbs_g': 9.0, 'fat_g': 15.0, 'fiber_g': 7.0, 'glycemic_index': 15, 'benefits': 'Healthy fats, potassium', 'allergens': 'None', 'created_at': datetime.datetime(2026, 5, 16, 8, 37, 51)}",
+        "  • {'id': 4, 'name': 'Broccoli', 'category': 'Vegetables', 'calories_per_100g': 34.0, 'protein_g': 2.8, 'carbs_g': 7.0, 'fat_g': 0.4, 'fiber_g': 2.4, 'glycemic_index': 15, 'benefits': 'Vitamin C, fiber', 'allergens': 'None', 'created_at': datetime.datetime(2026, 5, 16, 8, 37, 51)}",
+        "  • {'id': 6, 'name': 'Brown Rice', 'category': 'Grains', 'calories_per_100g': 111.0, 'protein_g': 2.6, 'carbs_g': 23.0, 'fat_g': 0.9, 'fiber_g': 1.8, 'glycemic_index': 50, 'benefits': 'Complex carbs, fiber', 'allergens': 'None', 'created_at': datetime.datetime(2026, 5, 16, 8, 37, 51)}",
+        "  • {'id': 1, 'name': 'Chicken Breast', 'category': 'Protein', 'calories_per_100g': 165.0, 'protein_g': 31.0, 'carbs_g': 0.0, 'fat_g': 3.6, 'fiber_g': 0.0, 'glycemic_index': 0, 'benefits': 'Lean protein, fast absorption after exercise', 'allergens': 'None', 'created_at': datetime.datetime(2026, 5, 16, 8, 22, 22)}"
+      ],
+      "exercise_recommendations": [
+        {
+          "benefits": "Full body exercise, builds explosive strength",
+          "calories_per_hour": 450,
+          "contraindications": "Joint issues, Heart condition",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 18,
+          "intensity": "High",
+          "name": "Burpees",
+          "precautions": "Use proper form, modify if needed",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Strengthens legs, improves endurance",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 5,
+          "intensity": "Medium",
+          "name": "Cycling",
+          "precautions": "Wear helmet, check brakes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Fun cardio, improves coordination",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 45,
+          "id": 10,
+          "intensity": "Medium",
+          "name": "Dancing",
+          "precautions": "Stay hydrated, wear comfortable shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Low impact cardio, easy on joints",
+          "calories_per_hour": 350,
+          "contraindications": "",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 30,
+          "id": 14,
+          "intensity": "Medium",
+          "name": "Elliptical",
+          "precautions": "Maintain posture, adjust resistance",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Efficient calorie burn, improves fitness",
+          "calories_per_hour": 500,
+          "contraindications": "Heart condition, Asthma",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 15,
+          "id": 7,
+          "intensity": "High",
+          "name": "HIIT",
+          "precautions": "Warm up properly, take rest periods",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Builds endurance, connects with nature",
+          "calories_per_hour": 400,
+          "contraindications": "Balance issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 60,
+          "id": 15,
+          "intensity": "Medium",
+          "name": "Hiking",
+          "precautions": "Wear proper footwear, bring water",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Improves coordination, burns calories",
+          "calories_per_hour": 400,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 10,
+          "id": 13,
+          "intensity": "High",
+          "name": "Jump Rope",
+          "precautions": "Use proper surface, wear supportive shoes",
+          "type": "Cardio"
+        },
+        {
+          "benefits": "Warm up exercise, improves circulation",
+          "calories_per_hour": 200,
+          "contraindications": "Joint issues",
+          "created_at": "2026-05-10 09:54:27",
+          "duration_minutes": 5,
+          "id": 17,
+          "intensity": "Medium",
+          "name": "Jumping Jacks",
+          "precautions": "Land softly, maintain rhythm",
+          "type": "Cardio"
+        }
+      ],
+      "final_recommendation": "With your fitness level, low cardio is a good match. Warm up gradually before starting, and cool down afterward. Stay hydrated, and monitor how you feel during the workout.",
+      "food_recommendations": [
+        {
+          "allergens": "Tree nuts",
+          "benefits": "Healthy fats, vitamin E",
+          "calories_per_100g": 579.0,
+          "carbs_g": 22.0,
+          "category": "Nuts",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 50.0,
+          "fiber_g": 12.0,
+          "glycemic_index": 0,
+          "id": 7,
+          "name": "Almonds",
+          "protein_g": 21.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Healthy fats, potassium",
+          "calories_per_100g": 160.0,
+          "carbs_g": 9.0,
+          "category": "Fruits",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 15.0,
+          "fiber_g": 7.0,
+          "glycemic_index": 15,
+          "id": 10,
+          "name": "Avocado",
+          "protein_g": 2.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Vitamin C, fiber",
+          "calories_per_100g": 34.0,
+          "carbs_g": 7.0,
+          "category": "Vegetables",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 15,
+          "id": 4,
+          "name": "Broccoli",
+          "protein_g": 2.8
+        },
+        {
+          "allergens": "None",
+          "benefits": "Complex carbs, fiber",
+          "calories_per_100g": 111.0,
+          "carbs_g": 23.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.9,
+          "fiber_g": 1.8,
+          "glycemic_index": 50,
+          "id": 6,
+          "name": "Brown Rice",
+          "protein_g": 2.6
+        },
+        {
+          "allergens": "None",
+          "benefits": "Lean protein, fast absorption after exercise",
+          "calories_per_100g": 165.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:22:22",
+          "fat_g": 3.6,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 1,
+          "name": "Chicken Breast",
+          "protein_g": 31.0
+        },
+        {
+          "allergens": "Dairy",
+          "benefits": "Probiotics, protein",
+          "calories_per_100g": 100.0,
+          "carbs_g": 6.0,
+          "category": "Dairy",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 0.4,
+          "fiber_g": 0.0,
+          "glycemic_index": 35,
+          "id": 5,
+          "name": "Greek Yogurt",
+          "protein_g": 17.0
+        },
+        {
+          "allergens": "None",
+          "benefits": "Heart healthy, fiber",
+          "calories_per_100g": 68.0,
+          "carbs_g": 12.0,
+          "category": "Grains",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 1.4,
+          "fiber_g": 2.4,
+          "glycemic_index": 55,
+          "id": 2,
+          "name": "Oatmeal",
+          "protein_g": 2.4
+        },
+        {
+          "allergens": "Fish",
+          "benefits": "Omega-3 fatty acids",
+          "calories_per_100g": 208.0,
+          "carbs_g": 0.0,
+          "category": "Protein",
+          "created_at": "2026-05-16 08:37:51",
+          "fat_g": 13.0,
+          "fiber_g": 0.0,
+          "glycemic_index": 0,
+          "id": 3,
+          "name": "Salmon",
+          "protein_g": 22.0
+        }
+      ],
+      "rag_context": {
+        "documents": [
+          []
+        ],
+        "error": null
+      },
+      "user_data": {
+        "ActivityType": "Low Cardio",
+        "Age": 14,
+        "CO": 489.0,
+        "DurationMins": 30,
+        "FitnessLevel": "Low",
+        "HealthCondition": "Healthy",
+        "Humidity": 37,
+        "NO2": 33.3,
+        "O3": 93.0,
+        "PM10": 65.4,
+        "PM25": 27.9,
+        "SO2": 20.7,
+        "Temperature": 26,
+        "TimeOfDay": "Morning",
+        "UV": 0,
+        "Wind": 7,
+        "city_id": 6,
+        "city_name": "Karaj",
+        "sensitive": false
+      },
+      "weather": {
+        "humid": 37.0,
+        "temp": 26.0,
+        "uv": 0,
+        "wind": 7
+      }
+    }
+  },
+  {
     "id": "49a6e46d-5bff-464c-b6da-8f46844b30e8",
     "type": "analysis",
     "created_at": "Aug 13, 2026  •  10:56 AM",

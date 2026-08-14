@@ -162,6 +162,7 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
     """
     Calculate environmental risk using the mathematical model.
     Converts gas pollutants from µg/m³ to ppm before passing to the model.
+    Now with KNN cluster prediction.
     """
     try:
         from ed_calculator.math_model import ExerciseDangerMathModel
@@ -201,7 +202,6 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
         co_ug = air_data.get('co', 0.0)
         
         # ─── Convert gases: µg/m³ → ppm ──────────────────────────────
-        # Molecular weights: O3=48.0, NO2=46.0, SO2=64.07, CO=28.01
         o3_ppm = ugm3_to_ppm(o3_ug, 48.0)
         no2_ppm = ugm3_to_ppm(no2_ug, 46.0)
         so2_ppm = ugm3_to_ppm(so2_ug, 64.07)
@@ -223,11 +223,25 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
         if co_ppm is not None and co_ppm > 0:
             add_valid_aqi(aqi_values, "CO", co_to_aqi(co_ppm))
         
-        # Filter out any None values (safety net)
         valid_aqi_values = [v for v in aqi_values.values() if v is not None]
         epa_index = aqi_to_epa_index(max(valid_aqi_values)) if valid_aqi_values else 1
         
-        # ─── Call the model with converted units ─────────────────────
+        # ─── KNN Cluster Prediction (جدید) ───────────────────────────
+        cluster_id = None
+        knn_cluster_used = False
+        try:
+            from ed_calculator.knn_cluster_matcher import predict_cluster
+            cluster_id = predict_cluster(
+                temp=temp,
+                pm25=pm25 if pm25 > 0 else 0.0
+            )
+            knn_cluster_used = True
+            print(f"   🔮 KNN predicted cluster: {cluster_id}")
+        except Exception as e:
+            print(f"   ⚠️ KNN prediction failed: {e}")
+            cluster_id = None
+        
+        # ─── Call the model with converted units + KNN cluster ──────
         result = model.predict(
             temperature_celsius=temp,
             humidity=humidity,
@@ -240,8 +254,9 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
             air_quality_Nitrogen_dioxide=no2_ppm if no2_ppm is not None and no2_ppm > 0 else None,
             air_quality_Sulphur_dioxide=so2_ppm if so2_ppm is not None and so2_ppm > 0 else None,
             air_quality_Carbon_Monoxide=co_ppm if co_ppm is not None and co_ppm > 0 else None,
-            cluster_id=None,
+            cluster_id=cluster_id,  # ← KNN predicted cluster
             anomaly_flag=False,
+            use_knn=False,  # ← cluster قبلاً با KNN گرفته شده
         )
         
         return {
@@ -249,7 +264,9 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
             'STATUS': result['Risk_Level'].upper(),
             'RANGE': result['confidence_range'],
             'BIAS': f"{result['regional_adjustment']:+.1f}",
-            'DETAILS': result
+            'DETAILS': result,
+            'KNN_CLUSTER': cluster_id,  # ← جدید
+            'KNN_CLUSTER_USED': knn_cluster_used,  # ← جدید
         }
         
     except Exception as e:
@@ -261,7 +278,9 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
             'STATUS': 'MODERATE',
             'RANGE': '0-100',
             'BIAS': '+0.0',
-            'DETAILS': None
+            'DETAILS': None,
+            'KNN_CLUSTER': None,
+            'KNN_CLUSTER_USED': False,
         }
 
 
@@ -310,10 +329,12 @@ def run_pipeline(user_input):
         try:
             detailed_result = calculate_detailed_environmental_risk(weather_data, air_data)
             ed = detailed_result["FINAL_SCORE"]
-            # Sensitive flag is now handled inside calculate_detailed_environmental_risk
-            # through the model's parameters, not as a post‑hoc +15
             user_data["ED"] = ed
             user_data["detailed_risk"] = detailed_result
+            # ─── KNN cluster info (جدید) ─────────────────────────────
+            if detailed_result.get("KNN_CLUSTER") is not None:
+                user_data["cluster_id"] = detailed_result["KNN_CLUSTER"]
+                print(f"   📍 Cluster: {detailed_result['KNN_CLUSTER']} (via KNN)")
         except Exception as e:
             print(f"Math model error, using fallback: {e}")
             PL = user_data.get("PL", user_data.get("PM25", 50))
