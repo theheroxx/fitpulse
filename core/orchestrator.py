@@ -1,8 +1,6 @@
 # core/orchestrator.py
 
-# ============================================================================
-# SAFE RAG INITIALIZATION — only if not already done by main.py
-# ============================================================================
+
 import os
 os.environ['CHROMA_TELEMETRY'] = 'False'
 os.environ['ANONYMIZED_TELEMETRY'] = 'False'
@@ -13,9 +11,9 @@ from database import get_exercises, get_foods
 from transformer.recommender import generate_recommendation, generate_recommendation_with_rag
 
 
-# ============================================================================
+
 # RAG functions — use JSON search only (thread-safe from QThread)
-# ============================================================================
+
 def retrieve_context(query):
     """Thread-safe RAG retrieval using JSON files only (no ChromaDB on QThread)"""
     import json
@@ -226,7 +224,7 @@ def calculate_detailed_environmental_risk(weather_data, air_data):
         valid_aqi_values = [v for v in aqi_values.values() if v is not None]
         epa_index = aqi_to_epa_index(max(valid_aqi_values)) if valid_aqi_values else 1
         
-        # ─── KNN Cluster Prediction (جدید) ───────────────────────────
+        # KNN Cluster Prediction 
         cluster_id = None
         knn_cluster_used = False
         try:
@@ -298,17 +296,13 @@ def get_risk_recommendation(risk_score):
         return "✅ Fully safe - Good conditions for outdoor exercise.", "safe"
 
 
-# ============================================================================
 # MAIN PIPELINE — ALWAYS CALLS THE LLM
-# ============================================================================
 
 def run_pipeline(user_input):
     """Full system pipeline — LLM is ALWAYS called for the final recommendation."""
     user_data = user_input.copy()
 
-    # =========================================================
     # 1) ED Calculation
-    # =========================================================
     if "ED" not in user_data:
         weather_data = {
             "temp": user_data.get("Temperature", user_data.get("temp", user_data.get("WD", 22))),
@@ -331,10 +325,11 @@ def run_pipeline(user_input):
             ed = detailed_result["FINAL_SCORE"]
             user_data["ED"] = ed
             user_data["detailed_risk"] = detailed_result
-            # ─── KNN cluster info (جدید) ─────────────────────────────
+
+            # ─── KNN cluster info 
             if detailed_result.get("KNN_CLUSTER") is not None:
                 user_data["cluster_id"] = detailed_result["KNN_CLUSTER"]
-                print(f"   📍 Cluster: {detailed_result['KNN_CLUSTER']} (via KNN)")
+                print(f"Cluster: {detailed_result['KNN_CLUSTER']} (via KNN)")
         except Exception as e:
             print(f"Math model error, using fallback: {e}")
             PL = user_data.get("PL", user_data.get("PM25", 50))
@@ -351,14 +346,11 @@ def run_pipeline(user_input):
     WD = user_data.get("WD", user_data.get("Temperature", 22))
     ed_recommendations = get_simple_recommendations(ed, PL, WD)
 
-    # =========================================================
     # 2) Detector (Rules + ML)
-    # =========================================================
     detector_output = rule_based_detector(user_data)
 
-    # =========================================================
     # 3) Exercise/Food Recommendations
-    # =========================================================
+    # ------------------------------
     user_profile = {
         "health_condition": user_data.get("HealthCondition", "Healthy"),
         "fitness_level": user_data.get("FitnessLevel", "Medium")
@@ -380,9 +372,10 @@ def run_pipeline(user_input):
         ed_recommendations.append("\n🥗 Recommended Foods:")
         ed_recommendations.extend([f"  • {food}" for food in food_recommendations[:5]])
 
-    # =========================================================
+
+
     # 4) RAG Context (thread-safe JSON search)
-    # =========================================================
+    # 
     query = build_query(user_data, detector_output)
     rag_context = ""
     try:
@@ -393,9 +386,9 @@ def run_pipeline(user_input):
     except Exception as e:
         print(f"RAG retrieval error: {e}")
 
-    # =========================================================
+    # 
     # 5) LLM Recommendation — ALWAYS CALLED
-    # =========================================================
+    # 
     final_recommendation = ""
     
     try:
@@ -425,7 +418,7 @@ def run_pipeline(user_input):
         print(f"🤖 Orchestrator: LLM response received ({len(final_recommendation)} chars)")
         
     except Exception as e:
-        print(f"❌ LLM generation error: {e}")
+        print(f" LLM generation error: {e}")
         # Fallback to a human-friendly message based on the detector label
         label = detector_output.get('label', 'Safe')
         if label == 'Safe':
